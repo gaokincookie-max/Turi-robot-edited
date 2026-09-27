@@ -31,3 +31,14 @@
 ## 補足
 - 保存データはブラウザの `localStorage` に保存されます
 - JSON出力を使うと、別環境へ状態を持ち出せます
+
+
+## v3b
+- Windows等でZIP展開時に日本語ファイル名が文字化けする環境向けに、同梱元画像の実ファイル名をASCII英数字へ変更しました。
+- 表示名は日本語のままです。
+
+
+## v3c clean filename fix
+- Removed all duplicate source-sheet files with Japanese filenames.
+- All bundled source-sheet paths now use ASCII-only filenames under `bundled_sources/`.
+- Fixed the remaining enemy ship source path.

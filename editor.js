@@ -43,14 +43,14 @@ const PRESET_ASSETS = [
 ];
 
 const PRESET_SOURCES = [
-  ['src_ship_sheet','味方艦シート','source-sheet','bundled_sources/sf宇宙船mk1_mk4スプライトシート.png'],
-  ['src_weapon_sheet','武器シート','source-sheet','bundled_sources/sf兵器スプライトシート.png'],
-  ['src_equip_sheet','装備シート','source-sheet','bundled_sources/sf宇宙船モジュール_ピクセルアートシート.png'],
-  ['src_fishing_sheet','釣具シート','source-sheet','bundled_sources/sf工業釣具スプライトシート.png'],
-  ['src_material_sheet','素材シート','source-sheet','bundled_sources/sfピクセルアート素材アイコンシート.png'],
-  ['src_enemy_ship_sheet','敵艦シート','source-sheet','bundled_sources/敵艦mk.1_mk.4_ピクセルアート艦隊.png'],
-  ['src_enemy_weapon_sheet','敵武器シート','source-sheet','bundled_sources/敵対色のsfタレット_スプライトシート.png'],
-  ['src_enemy_equip_sheet','敵装備シート','source-sheet','bundled_sources/敵対型メカドローン装備スプライトシート.png'],
+  ['src_ship_sheet','味方艦シート','source-sheet','bundled_sources/player_ships_sheet.png'],
+  ['src_weapon_sheet','武器シート','source-sheet','bundled_sources/player_weapons_sheet.png'],
+  ['src_equip_sheet','装備シート','source-sheet','bundled_sources/player_equipment_sheet.png'],
+  ['src_fishing_sheet','釣具シート','source-sheet','bundled_sources/fishing_gear_sheet.png'],
+  ['src_material_sheet','素材シート','source-sheet','bundled_sources/material_icons_sheet.png'],
+  ['src_enemy_ship_sheet','敵艦シート','source-sheet','bundled_sources/enemy_ships_sheet.png'],
+  ['src_enemy_weapon_sheet','敵武器シート','source-sheet','bundled_sources/enemy_weapons_sheet.png'],
+  ['src_enemy_equip_sheet','敵装備シート','source-sheet','bundled_sources/enemy_equipment_sheet.png'],
 ];
 
 const SCENES = {

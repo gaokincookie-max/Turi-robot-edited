@@ -18,14 +18,16 @@
 </header>
 
 <nav class="tabs">
-  <button class="tab active" data-tab="assetTab">アセット調整</button>
+  <button class="tab active" data-tab="assetTab">アセット一覧</button>
+  <button class="tab" data-tab="imageEditTab">画像編集</button>
+  <button class="tab" data-tab="adjustTab">アセット調整</button>
   <button class="tab" data-tab="layoutTab">レイアウト調整</button>
   <button class="tab" data-tab="dataTab">データ確認</button>
 </nav>
 
 <main class="tabPanels">
-  <section id="assetTab" class="tabPanel active">
-    <aside class="panel assetLeft">
+  <section id="assetTab" class="tabPanel active threeCol">
+    <aside class="panel leftCol">
       <section>
         <h2>アセット一覧</h2>
         <div class="row gap">
@@ -34,40 +36,138 @@
         </div>
         <div class="row gap top8">
           <button id="deleteAssetBtn">削除</button>
-          <button id="bakeAssetBtn">切り抜き版を複製作成</button>
+          <button id="openAssetInAdjustBtn">調整で開く</button>
         </div>
         <input id="assetSearch" class="top8" type="search" placeholder="名前・カテゴリで検索">
         <div id="assetList" class="assetList top8"></div>
       </section>
+    </aside>
+
+    <section class="panel centerCol">
+      <section>
+        <h2>選択中アセット</h2>
+        <div id="assetQuickInfo" class="muted">アセットを選択してください。</div>
+        <div class="assetHero top8"><div id="assetHeroThumb" class="assetHeroThumb"></div></div>
+        <div class="row gap top8">
+          <button id="openAssetAsSourceBtn">画像編集で元画像として開く</button>
+          <button id="openAssetInLayoutBtn">レイアウトで使う</button>
+        </div>
+      </section>
+      <section>
+        <h2>元画像ソース</h2>
+        <p class="muted">大きいスプライトシートから自由に切り抜きたい時は、画像編集タブでこのソース群を使います。</p>
+        <div id="sourceQuickList" class="sourceQuickList"></div>
+      </section>
+    </section>
+
+    <aside class="panel rightCol">
+      <section>
+        <h2>このツールの流れ</h2>
+        <ol>
+          <li><strong>画像編集</strong>で元画像や大きいシートから自由に切り抜く。</li>
+          <li><strong>アセット調整</strong>で切り抜き後の基準点 A / M / T を整える。</li>
+          <li><strong>レイアウト調整</strong>で場面ごとの位置・大きさ・角度を詰める。</li>
+        </ol>
+        <p class="muted">A = Anchor、M = Mount、T = Tip/Muzzle です。</p>
+      </section>
+    </aside>
+  </section>
+
+  <section id="imageEditTab" class="tabPanel threeCol imageEditLayout">
+    <aside class="panel leftCol">
+      <section>
+        <h2>編集元ソース</h2>
+        <div class="row gap">
+          <label class="fileBtn wide">元画像追加<input id="sourceFileInput" type="file" accept="image/png,image/webp,image/jpeg" multiple></label>
+          <button id="useCurrentAssetAsSourceBtn">選択アセットを元画像化</button>
+        </div>
+        <input id="sourceSearch" class="top8" type="search" placeholder="ソースを検索">
+        <div id="sourceList" class="assetList top8"></div>
+      </section>
+      <section>
+        <h2>保存</h2>
+        <label>新規アセット名<input id="newAssetNameInput" type="text" placeholder="例: pulse_trimmed"></label>
+        <label>カテゴリ<input id="newAssetCategoryInput" type="text" placeholder="weapon / equipment / ship"></label>
+        <div class="row gap">
+          <button id="saveSelectionAsAssetBtn" class="primary">選択部分を新規アセット保存</button>
+          <button id="replaceCurrentAssetBtn">選択中アセットを上書き</button>
+        </div>
+      </section>
+    </aside>
+
+    <section class="panel centerCol imageCenter">
+      <div class="toolbarLine wrap">
+        <div class="toolGroup">
+          <button class="toolBtn active" data-tool="brushKeep">ブラシ追加</button>
+          <button class="toolBtn" data-tool="brushErase">ブラシ消去</button>
+          <button class="toolBtn" data-tool="rectKeep">矩形追加</button>
+          <button class="toolBtn" data-tool="rectErase">矩形消去</button>
+        </div>
+        <div class="toolGroup">
+          <label>ブラシサイズ<input id="brushSizeInput" type="range" min="2" max="80" step="1" value="18"></label>
+          <label>表示倍率<input id="sourceZoomInput" type="range" min="0.5" max="8" step="0.1" value="2"></label>
+        </div>
+      </div>
+      <div class="toolbarLine wrap secondLine">
+        <div class="toolGroup">
+          <button id="selectOpaqueBtn">不透明部分を全選択</button>
+          <button id="fillMaskBtn">画像全体を選択</button>
+          <button id="clearMaskBtn">選択を全消去</button>
+          <button id="invertMaskBtn">選択を反転</button>
+        </div>
+        <div class="toolGroup">
+          <button id="fitSourceBtn">画面に合わせる</button>
+          <button id="resetImageEditBtn">編集をリセット</button>
+        </div>
+      </div>
+      <div id="imageEditorWrap" class="imageEditorWrap">
+        <canvas id="imageEditorCanvas"></canvas>
+      </div>
+      <p class="muted top8">画像編集は別画面に分けています。大きな元画像を表示し、ブラシや矩形で自由に残す/消すを行えます。</p>
+    </section>
+
+    <aside class="panel rightCol">
+      <section>
+        <h2>切り抜きプレビュー</h2>
+        <canvas id="cutoutPreviewCanvas" width="320" height="220"></canvas>
+      </section>
+      <section>
+        <h2>情報</h2>
+        <div id="sourceInfo" class="muted">ソースを選択してください。</div>
+        <div id="maskBoundsInfo" class="top8 muted"></div>
+      </section>
+    </aside>
+  </section>
+
+  <section id="adjustTab" class="tabPanel threeCol">
+    <aside class="panel leftCol">
       <section>
         <h2>アセット操作</h2>
         <div class="smallButtons">
           <button id="autoTrimBtn">透明余白を自動トリム</button>
           <button id="resetCropBtn">切り抜きを全体に戻す</button>
           <button id="downloadPngBtn">切り抜きPNGを保存</button>
-          <button id="clearMaskBtn">自由切り抜きを消去</button>
+          <button id="bakeAssetBtn">切り抜き版を複製作成</button>
         </div>
         <div class="smallButtons top8">
-          <button id="setAnchorModeBtn">アンカー指定</button>
-          <button id="setMountModeBtn">接続点指定</button>
-          <button id="setMuzzleModeBtn">銃口/先端指定</button>
-          <button id="clearPointModeBtn">基準点モード解除</button>
+          <button id="setAnchorModeBtn">A指定</button>
+          <button id="setMountModeBtn">M指定</button>
+          <button id="setMuzzleModeBtn">T指定</button>
+          <button id="clearPointModeBtn">モード解除</button>
         </div>
-        <div class="smallButtons top8">
-          <button id="maskEraseBtn">自由切り抜き: 消す</button>
-          <button id="maskRestoreBtn">自由切り抜き: 戻す</button>
-          <button id="maskPanBtn">自由切り抜き: 停止</button>
-        </div>
-        <label class="top8">ブラシサイズ <input id="maskBrushSizeInput" type="range" min="2" max="80" step="1" value="18"></label>
         <p id="assetModeText" class="muted top8">モード: 通常</p>
+      </section>
+      <section>
+        <h2>現在のアセット</h2>
+        <div id="adjustAssetName" class="muted"></div>
       </section>
     </aside>
 
-    <section class="assetCenter">
+    <section class="panel centerCol">
       <div class="toolbarLine">
-        <span>上段で大きな元画像から範囲を取り、下段で必要ならブラシで比較的自由に切り抜けます。</span>
+        <span>切り抜き枠はドラッグで移動、四隅でサイズ変更。画像上クリックで A / M / T を指定できます。</span>
       </div>
-      <div id="assetStageWrap" class="assetStageWrap">
+      <div class="assetStageWrap">
         <div id="assetStage" class="assetStage">
           <img id="assetStageImg" alt="asset" draggable="false">
           <div id="cropBox" class="cropBox hidden">
@@ -81,30 +181,25 @@
           <div id="muzzleMarker" class="pointMarker muzzle hidden">T</div>
         </div>
       </div>
-      <div class="assetPreviewGrid threeCols">
+      <div class="assetPreviewGrid">
         <div>
           <h3>切り抜きプレビュー</h3>
           <canvas id="trimmedCanvas" width="320" height="220"></canvas>
         </div>
         <div>
-          <h3>基準点確認</h3>
+          <h3>基準点プレビュー</h3>
           <canvas id="anchorCanvas" width="320" height="220"></canvas>
-        </div>
-        <div>
-          <h3>自由切り抜き編集</h3>
-          <canvas id="maskEditCanvas" width="320" height="220"></canvas>
-          <p class="muted">この欄では、不要部分を消したり、消しすぎた部分を戻したりできます。</p>
         </div>
       </div>
     </section>
 
-    <aside class="panel assetRight">
+    <aside class="panel rightCol">
       <section>
         <h2>選択中アセット</h2>
         <div id="noAssetText" class="muted">アセットを選択してください。</div>
         <div id="assetInspector" hidden>
           <label>名前<input id="assetNameInput" type="text"></label>
-          <label>カテゴリ<input id="assetCategoryInput" type="text" placeholder="ship / weapon / equipment / sheet ..."></label>
+          <label>カテゴリ<input id="assetCategoryInput" type="text" placeholder="ship / weapon / equipment ..."></label>
           <div class="xygrid">
             <label>回転°<input id="assetRotationInput" type="number" step="1"></label>
             <label>拡大率<input id="assetScaleInput" type="number" step="0.05" min="0.1"></label>
@@ -126,8 +221,8 @@
             <label>Anchor Y<input id="anchorYInput" type="number" step="1"></label>
             <label>Mount X<input id="mountXInput" type="number" step="1"></label>
             <label>Mount Y<input id="mountYInput" type="number" step="1"></label>
-            <label>Muzzle X<input id="muzzleXInput" type="number" step="1"></label>
-            <label>Muzzle Y<input id="muzzleYInput" type="number" step="1"></label>
+            <label>Tip X<input id="muzzleXInput" type="number" step="1"></label>
+            <label>Tip Y<input id="muzzleYInput" type="number" step="1"></label>
           </div>
           <label>メモ<textarea id="assetNotesInput" rows="4"></textarea></label>
         </div>
@@ -135,8 +230,8 @@
     </aside>
   </section>
 
-  <section id="layoutTab" class="tabPanel">
-    <aside class="panel layoutLeft">
+  <section id="layoutTab" class="tabPanel threeCol">
+    <aside class="panel leftCol">
       <section>
         <h2>プレビュー設定</h2>
         <label>場面<select id="sceneSelect"></select></label>
@@ -165,7 +260,7 @@
       </section>
     </aside>
 
-    <section class="layoutCenter">
+    <section class="panel centerCol">
       <div class="toolbarLine">
         <span>ドラッグで移動。右下ハンドルでサイズ変更。数値でも微調整できます。</span>
       </div>
@@ -174,7 +269,7 @@
       </div>
     </section>
 
-    <aside class="panel layoutRight">
+    <aside class="panel rightCol">
       <section>
         <h2>要素インスペクタ</h2>
         <div id="noElementText" class="muted">要素を選択してください。</div>
@@ -201,7 +296,6 @@
       </section>
       <section>
         <h2>JSON</h2>
-        <p class="muted">このJSON全体を保存・送付すれば、あとで本編に反映しやすいです。</p>
         <div class="row gap">
           <button id="copyJsonBtn">JSONコピー</button>
           <button id="downloadJsonBtn">JSON保存</button>
@@ -213,16 +307,6 @@
 
   <section id="dataTab" class="tabPanel panel dataPanel">
     <section>
-      <h2>使い方</h2>
-      <ol>
-        <li><strong>アセット調整</strong>で元画像から大まかな範囲を取り、必要なら自由切り抜きで形を整える。</li>
-        <li>Anchor / Mount / Muzzle を決める。</li>
-        <li><strong>切り抜き版を複製作成</strong>すると、加工後のアセットを独立して使いやすくなる。</li>
-        <li><strong>レイアウト調整</strong>で場面ごとの位置・大きさ・角度を詰める。</li>
-      </ol>
-      <p class="muted">v3では、大きな元画像をそのまま同梱し、四角切り抜き＋ブラシによる比較的自由な切り抜きの両方に対応しています。</p>
-    </section>
-    <section>
       <h2>現在のデータ全文</h2>
       <textarea id="dataDump" rows="26"></textarea>
       <div class="row gap top8">
@@ -232,6 +316,7 @@
     </section>
   </section>
 </main>
+
 <script src="editor.js"></script>
 </body>
 </html>

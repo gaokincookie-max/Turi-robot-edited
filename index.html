@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>VOID ANGLER Layout Editor</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header class="topbar">
+  <div><strong>VOID ANGLER</strong><span> Layout Editor v1</span></div>
+  <div class="topActions">
+    <button id="saveLocal">端末保存</button>
+    <button id="exportBtn" class="primary">JSON出力</button>
+    <label class="fileBtn">JSON読込<input id="importInput" type="file" accept="application/json,.json"></label>
+  </div>
+</header>
+<main class="app">
+  <aside class="panel leftPanel">
+    <section>
+      <h2>プレビュー</h2>
+      <label>場面<select id="sceneSelect"></select></label>
+      <label id="mkRow">機体<select id="mkSelect"><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
+      <label>画面<select id="viewportSelect"><option value="phone">スマホ縦</option><option value="landscape">スマホ横</option><option value="square">正方形</option><option value="wide">ワイド</option></select></label>
+      <div class="toggles">
+        <label><input id="gridToggle" type="checkbox" checked>グリッド</label>
+        <label><input id="snapToggle" type="checkbox" checked>スナップ</label>
+      </div>
+      <label>スナップ幅<select id="snapSize"><option value="1">1%</option><option value="2">2%</option><option value="5">5%</option></select></label>
+    </section>
+    <section>
+      <h2>パーツ一覧</h2>
+      <div id="layerList" class="layerList"></div>
+    </section>
+    <section class="smallButtons">
+      <button id="duplicateBtn">選択を複製</button>
+      <button id="deleteBtn">選択を削除</button>
+      <button id="resetItemBtn">選択を初期化</button>
+      <button id="resetSceneBtn">場面を初期化</button>
+    </section>
+  </aside>
+
+  <section class="workspaceWrap">
+    <div class="workspaceToolbar">
+      <span>ドラッグで移動 / ハンドルで拡大 / 数値でも調整できます</span>
+      <button id="mirrorBtn">味方→敵へ上下反転コピー</button>
+    </div>
+    <div id="viewportFrame" class="viewportFrame phone">
+      <div id="preview" class="preview gridOn"></div>
+    </div>
+  </section>
+
+  <aside class="panel rightPanel">
+    <section>
+      <h2>選択中</h2>
+      <div id="emptyInspector" class="muted">パーツを選択してください</div>
+      <div id="inspector" hidden>
+        <div id="selectedName" class="selectedName"></div>
+        <div class="xygrid">
+          <label>X %<input id="xInput" type="number" step="0.1"></label>
+          <label>Y %<input id="yInput" type="number" step="0.1"></label>
+          <label>幅 %<input id="wInput" type="number" step="0.1" min="1"></label>
+          <label>高さ %<input id="hInput" type="number" step="0.1" min="1"></label>
+          <label>角度 °<input id="rotInput" type="number" step="1"></label>
+          <label>拡大率<input id="scaleInput" type="number" step="0.05" min="0.1"></label>
+          <label>Z順<input id="zInput" type="number" step="1"></label>
+          <label>透明度<input id="opacityInput" type="number" step="0.05" min="0" max="1"></label>
+        </div>
+        <div class="toggles inspectorToggles">
+          <label><input id="flipXInput" type="checkbox">左右反転</label>
+          <label><input id="flipYInput" type="checkbox">上下反転</label>
+          <label><input id="visibleInput" type="checkbox" checked>表示</label>
+        </div>
+        <label>画像<select id="assetInput"></select></label>
+        <label>メモ<textarea id="noteInput" rows="3" placeholder="例: Mk1武器1。もう少し右"></textarea></label>
+      </div>
+    </section>
+    <section>
+      <h2>数値の受け渡し</h2>
+      <p class="muted">JSONをそのままこちらに返してもらえれば、本編側へ同じ配置を反映できます。</p>
+      <button id="copyJsonBtn">JSONをコピー</button>
+      <textarea id="jsonPreview" rows="12" readonly></textarea>
+    </section>
+  </aside>
+</main>
+<script src="editor.js"></script>
+</body>
+</html>

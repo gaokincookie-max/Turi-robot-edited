@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'void-angler-layout-editor-v3';
+const STORAGE_KEY = 'void-angler-layout-editor-v3d';
 
 const PRESET_ASSETS = [
   ['ship_mk1','Ship Mk1','ship','bundled_assets/assets/ships/ship_mk1.png'],
@@ -102,8 +102,23 @@ function makePresetState(){
     ui: { currentTab:'assetTab', selectedAssetId:'ship_mk1', selectedSourceId:'src_ship_sheet', scene:'battle_player', mk:'1', selectedElementId:null, viewport:'phone', showGrid:true, showSafe:true, snap:true, snapStep:1 },
   };
 }
-function loadState(){ try{ const raw = localStorage.getItem(STORAGE_KEY); if(!raw) return null; const parsed = JSON.parse(raw); return parsed; }catch(e){ return null; } }
-let state = loadState() || makePresetState();
+function repairState(saved){
+  const base = makePresetState();
+  if(!saved || typeof saved !== 'object') return base;
+  saved.assets = saved.assets && Object.keys(saved.assets).length ? saved.assets : base.assets;
+  saved.sources = saved.sources || {};
+  for(const [id,src] of Object.entries(base.sources)){
+    if(!saved.sources[id] || !saved.sources[id].src) saved.sources[id] = clone(src);
+  }
+  saved.layouts = saved.layouts || base.layouts;
+  saved.ui = Object.assign({}, base.ui, saved.ui || {});
+  if(!saved.sources[saved.ui.selectedSourceId]) saved.ui.selectedSourceId = Object.keys(saved.sources)[0] || null;
+  if(!saved.assets[saved.ui.selectedAssetId]) saved.ui.selectedAssetId = Object.keys(saved.assets)[0] || null;
+  saved.version = 3.1;
+  return saved;
+}
+function loadState(){ try{ const raw = localStorage.getItem(STORAGE_KEY); if(!raw) return null; const parsed = JSON.parse(raw); return repairState(parsed); }catch(e){ return null; } }
+let state = repairState(loadState() || makePresetState());
 
 function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); refreshJsonViews(); }
 function currentAsset(){ return state.assets[state.ui.selectedAssetId] || null; }
@@ -305,8 +320,10 @@ const imageEditor = {
 };
 
 async function openSourceInEditor(sourceId){
-  imageEditor.sourceId = sourceId;
-  const src = state.sources[sourceId]; if(!src) return;
+  if(!state.sources || !Object.keys(state.sources).length) state = repairState(state);
+  imageEditor.sourceId = sourceId || Object.keys(state.sources)[0] || null;
+  const src = state.sources[imageEditor.sourceId]; if(!src){ renderImageEditor(); return; }
+  state.ui.selectedSourceId = src.id;
   const img = await loadImage(src.src); imageEditor.img = img; imageEditor.zoom = Number($('#sourceZoomInput')?.value || imageEditor.zoom || 2);
   imageEditor.maskCanvas = document.createElement('canvas'); imageEditor.maskCanvas.width = img.naturalWidth; imageEditor.maskCanvas.height = img.naturalHeight; imageEditor.maskCtx = imageEditor.maskCanvas.getContext('2d'); imageEditor.maskCtx.clearRect(0,0,img.naturalWidth,img.naturalHeight);
   renderImageEditor();

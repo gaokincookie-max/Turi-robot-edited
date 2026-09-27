@@ -42,3 +42,9 @@
 - Removed all duplicate source-sheet files with Japanese filenames.
 - All bundled source-sheet paths now use ASCII-only filenames under `bundled_sources/`.
 - Fixed the remaining enemy ship source path.
+
+
+## v3d source list fix
+- Uses a fresh localStorage key so broken/stale v3 data cannot hide bundled sources.
+- Repairs missing `sources` entries automatically from the bundled source list.
+- Falls back to the first valid source when the selected source is missing.

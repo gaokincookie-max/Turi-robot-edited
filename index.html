@@ -1,87 +1,223 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>VOID ANGLER Layout Editor</title>
-<link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>VOID ANGLER Layout & Asset Editor v2</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 <header class="topbar">
-  <div><strong>VOID ANGLER</strong><span> Layout Editor v1</span></div>
+  <div class="brand"><strong>VOID ANGLER</strong><span> Layout & Asset Editor v2</span></div>
   <div class="topActions">
-    <button id="saveLocal">端末保存</button>
-    <button id="exportBtn" class="primary">JSON出力</button>
-    <label class="fileBtn">JSON読込<input id="importInput" type="file" accept="application/json,.json"></label>
+    <button id="saveLocalBtn">端末保存</button>
+    <button id="loadLocalBtn">端末読込</button>
+    <label class="fileBtn">JSON読込<input id="importJsonInput" type="file" accept="application/json,.json"></label>
+    <button id="exportJsonBtn" class="primary">JSON出力</button>
   </div>
 </header>
-<main class="app">
-  <aside class="panel leftPanel">
-    <section>
-      <h2>プレビュー</h2>
-      <label>場面<select id="sceneSelect"></select></label>
-      <label id="mkRow">機体<select id="mkSelect"><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
-      <label>画面<select id="viewportSelect"><option value="phone">スマホ縦</option><option value="landscape">スマホ横</option><option value="square">正方形</option><option value="wide">ワイド</option></select></label>
-      <div class="toggles">
-        <label><input id="gridToggle" type="checkbox" checked>グリッド</label>
-        <label><input id="snapToggle" type="checkbox" checked>スナップ</label>
-      </div>
-      <label>スナップ幅<select id="snapSize"><option value="1">1%</option><option value="2">2%</option><option value="5">5%</option></select></label>
-    </section>
-    <section>
-      <h2>パーツ一覧</h2>
-      <div id="layerList" class="layerList"></div>
-    </section>
-    <section class="smallButtons">
-      <button id="duplicateBtn">選択を複製</button>
-      <button id="deleteBtn">選択を削除</button>
-      <button id="resetItemBtn">選択を初期化</button>
-      <button id="resetSceneBtn">場面を初期化</button>
-    </section>
-  </aside>
 
-  <section class="workspaceWrap">
-    <div class="workspaceToolbar">
-      <span>ドラッグで移動 / ハンドルで拡大 / 数値でも調整できます</span>
-      <button id="mirrorBtn">味方→敵へ上下反転コピー</button>
-    </div>
-    <div id="viewportFrame" class="viewportFrame phone">
-      <div id="preview" class="preview gridOn"></div>
-    </div>
+<nav class="tabs">
+  <button class="tab active" data-tab="assetTab">アセット調整</button>
+  <button class="tab" data-tab="layoutTab">レイアウト調整</button>
+  <button class="tab" data-tab="dataTab">データ確認</button>
+</nav>
+
+<main class="tabPanels">
+  <section id="assetTab" class="tabPanel active">
+    <aside class="panel assetLeft">
+      <section>
+        <h2>アセット一覧</h2>
+        <div class="row gap">
+          <label class="fileBtn wide">画像追加<input id="assetFileInput" type="file" accept="image/png,image/webp,image/jpeg" multiple></label>
+          <button id="duplicateAssetBtn">複製</button>
+        </div>
+        <div class="row gap top8">
+          <button id="deleteAssetBtn">削除</button>
+          <button id="bakeAssetBtn">切り抜き版を複製作成</button>
+        </div>
+        <input id="assetSearch" class="top8" type="search" placeholder="名前・カテゴリで検索">
+        <div id="assetList" class="assetList top8"></div>
+      </section>
+      <section>
+        <h2>アセット操作</h2>
+        <div class="smallButtons">
+          <button id="autoTrimBtn">透明余白を自動トリム</button>
+          <button id="resetCropBtn">切り抜きを全体に戻す</button>
+          <button id="downloadPngBtn">切り抜きPNGを保存</button>
+        </div>
+        <div class="smallButtons top8">
+          <button id="setAnchorModeBtn">アンカー指定</button>
+          <button id="setMountModeBtn">接続点指定</button>
+          <button id="setMuzzleModeBtn">銃口/先端指定</button>
+          <button id="clearPointModeBtn">モード解除</button>
+        </div>
+        <p id="assetModeText" class="muted top8">モード: 通常</p>
+      </section>
+    </aside>
+
+    <section class="assetCenter">
+      <div class="toolbarLine">
+        <span>切り抜き枠はドラッグで移動、四隅でサイズ変更。画像上クリックでアンカー/接続点/銃口を設定できます。</span>
+      </div>
+      <div id="assetStageWrap" class="assetStageWrap">
+        <div id="assetStage" class="assetStage">
+          <img id="assetStageImg" alt="asset" draggable="false">
+          <div id="cropBox" class="cropBox hidden">
+            <div class="cropHandle nw" data-handle="nw"></div>
+            <div class="cropHandle ne" data-handle="ne"></div>
+            <div class="cropHandle sw" data-handle="sw"></div>
+            <div class="cropHandle se" data-handle="se"></div>
+          </div>
+          <div id="anchorMarker" class="pointMarker anchor hidden">A</div>
+          <div id="mountMarker" class="pointMarker mount hidden">M</div>
+          <div id="muzzleMarker" class="pointMarker muzzle hidden">T</div>
+        </div>
+      </div>
+      <div class="assetPreviewGrid">
+        <div>
+          <h3>切り抜きプレビュー</h3>
+          <canvas id="trimmedCanvas" width="320" height="220"></canvas>
+        </div>
+        <div>
+          <h3>アンカー確認</h3>
+          <canvas id="anchorCanvas" width="320" height="220"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel assetRight">
+      <section>
+        <h2>選択中アセット</h2>
+        <div id="noAssetText" class="muted">アセットを選択してください。</div>
+        <div id="assetInspector" hidden>
+          <label>名前<input id="assetNameInput" type="text"></label>
+          <label>カテゴリ<input id="assetCategoryInput" type="text" placeholder="ship / weapon / equipment ..."></label>
+          <div class="xygrid">
+            <label>回転°<input id="assetRotationInput" type="number" step="1"></label>
+            <label>拡大率<input id="assetScaleInput" type="number" step="0.05" min="0.1"></label>
+          </div>
+          <div class="toggles">
+            <label><input id="assetFlipXInput" type="checkbox">左右反転</label>
+            <label><input id="assetFlipYInput" type="checkbox">上下反転</label>
+          </div>
+          <h3>切り抜き</h3>
+          <div class="xygrid">
+            <label>X<input id="cropXInput" type="number" step="1"></label>
+            <label>Y<input id="cropYInput" type="number" step="1"></label>
+            <label>幅<input id="cropWInput" type="number" step="1" min="1"></label>
+            <label>高さ<input id="cropHInput" type="number" step="1" min="1"></label>
+          </div>
+          <h3>基準点</h3>
+          <div class="xygrid">
+            <label>Anchor X<input id="anchorXInput" type="number" step="1"></label>
+            <label>Anchor Y<input id="anchorYInput" type="number" step="1"></label>
+            <label>Mount X<input id="mountXInput" type="number" step="1"></label>
+            <label>Mount Y<input id="mountYInput" type="number" step="1"></label>
+            <label>Muzzle X<input id="muzzleXInput" type="number" step="1"></label>
+            <label>Muzzle Y<input id="muzzleYInput" type="number" step="1"></label>
+          </div>
+          <label>メモ<textarea id="assetNotesInput" rows="4"></textarea></label>
+        </div>
+      </section>
+    </aside>
   </section>
 
-  <aside class="panel rightPanel">
-    <section>
-      <h2>選択中</h2>
-      <div id="emptyInspector" class="muted">パーツを選択してください</div>
-      <div id="inspector" hidden>
-        <div id="selectedName" class="selectedName"></div>
-        <div class="xygrid">
-          <label>X %<input id="xInput" type="number" step="0.1"></label>
-          <label>Y %<input id="yInput" type="number" step="0.1"></label>
-          <label>幅 %<input id="wInput" type="number" step="0.1" min="1"></label>
-          <label>高さ %<input id="hInput" type="number" step="0.1" min="1"></label>
-          <label>角度 °<input id="rotInput" type="number" step="1"></label>
-          <label>拡大率<input id="scaleInput" type="number" step="0.05" min="0.1"></label>
-          <label>Z順<input id="zInput" type="number" step="1"></label>
-          <label>透明度<input id="opacityInput" type="number" step="0.05" min="0" max="1"></label>
+  <section id="layoutTab" class="tabPanel">
+    <aside class="panel layoutLeft">
+      <section>
+        <h2>プレビュー設定</h2>
+        <label>場面<select id="sceneSelect"></select></label>
+        <label>機体Mk<select id="mkSelect"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label>
+        <label>画面<select id="viewportSelect"><option value="phone">スマホ縦</option><option value="landscape">スマホ横</option><option value="square">正方形</option><option value="wide">ワイド</option></select></label>
+        <div class="toggles">
+          <label><input id="showGridInput" type="checkbox" checked>グリッド</label>
+          <label><input id="showSafeAreaInput" type="checkbox" checked>セーフ枠</label>
+          <label><input id="snapInput" type="checkbox" checked>スナップ</label>
         </div>
-        <div class="toggles inspectorToggles">
-          <label><input id="flipXInput" type="checkbox">左右反転</label>
-          <label><input id="flipYInput" type="checkbox">上下反転</label>
-          <label><input id="visibleInput" type="checkbox" checked>表示</label>
+        <label>スナップ幅<select id="snapPercentSelect"><option value="1">1%</option><option value="2">2%</option><option value="5">5%</option></select></label>
+      </section>
+      <section>
+        <h2>要素一覧</h2>
+        <div class="row gap">
+          <button id="addElementBtn">要素追加</button>
+          <button id="duplicateElementBtn">複製</button>
+          <button id="deleteElementBtn">削除</button>
         </div>
-        <label>画像<select id="assetInput"></select></label>
-        <label>メモ<textarea id="noteInput" rows="3" placeholder="例: Mk1武器1。もう少し右"></textarea></label>
+        <div class="row gap top8">
+          <button id="resetElementBtn">選択を初期化</button>
+          <button id="resetSceneBtn">場面を初期化</button>
+          <button id="mirrorSceneBtn">味方→敵へ上下反転</button>
+        </div>
+        <div id="elementList" class="assetList top8"></div>
+      </section>
+    </aside>
+
+    <section class="layoutCenter">
+      <div class="toolbarLine">
+        <span>ドラッグで移動。右下ハンドルでサイズ変更。数値でも微調整できます。</span>
+      </div>
+      <div id="viewportFrame" class="viewportFrame phone">
+        <div id="layoutPreview" class="layoutPreview gridOn safeOn"></div>
       </div>
     </section>
+
+    <aside class="panel layoutRight">
+      <section>
+        <h2>要素インスペクタ</h2>
+        <div id="noElementText" class="muted">要素を選択してください。</div>
+        <div id="elementInspector" hidden>
+          <label>表示名<input id="elementNameInput" type="text"></label>
+          <label>アセット<select id="elementAssetInput"></select></label>
+          <div class="xygrid">
+            <label>X %<input id="elementXInput" type="number" step="0.1"></label>
+            <label>Y %<input id="elementYInput" type="number" step="0.1"></label>
+            <label>幅 %<input id="elementWInput" type="number" step="0.1"></label>
+            <label>高さ %<input id="elementHInput" type="number" step="0.1"></label>
+            <label>角度°<input id="elementRotInput" type="number" step="1"></label>
+            <label>拡大率<input id="elementScaleInput" type="number" step="0.05" min="0.1"></label>
+            <label>Z順<input id="elementZInput" type="number" step="1"></label>
+            <label>透明度<input id="elementOpacityInput" type="number" step="0.05" min="0" max="1"></label>
+          </div>
+          <div class="toggles">
+            <label><input id="elementFlipXInput" type="checkbox">左右反転</label>
+            <label><input id="elementFlipYInput" type="checkbox">上下反転</label>
+            <label><input id="elementVisibleInput" type="checkbox" checked>表示</label>
+          </div>
+          <label>メモ<textarea id="elementNotesInput" rows="4"></textarea></label>
+        </div>
+      </section>
+      <section>
+        <h2>JSON</h2>
+        <p class="muted">このJSON全体を保存・送付すれば、あとで本編に反映しやすいです。</p>
+        <div class="row gap">
+          <button id="copyJsonBtn">JSONコピー</button>
+          <button id="downloadJsonBtn">JSON保存</button>
+        </div>
+        <textarea id="jsonPreview" rows="14" readonly class="top8"></textarea>
+      </section>
+    </aside>
+  </section>
+
+  <section id="dataTab" class="tabPanel panel dataPanel">
     <section>
-      <h2>数値の受け渡し</h2>
-      <p class="muted">JSONをそのままこちらに返してもらえれば、本編側へ同じ配置を反映できます。</p>
-      <button id="copyJsonBtn">JSONをコピー</button>
-      <textarea id="jsonPreview" rows="12" readonly></textarea>
+      <h2>使い方</h2>
+      <ol>
+        <li><strong>アセット調整</strong>で余白トリム・中心/接続点調整・必要なら切り抜き版の複製を作る。</li>
+        <li><strong>レイアウト調整</strong>で場面ごとの位置・大きさ・角度を詰める。</li>
+        <li>最後に <strong>JSON保存</strong> または <strong>JSONコピー</strong> を使って値を受け渡す。</li>
+      </ol>
+      <p class="muted">補足: 画像によって中心がズレる問題に対応するため、v2では切り抜き・基準点の編集を先に行えるようにしています。</p>
     </section>
-  </aside>
+    <section>
+      <h2>現在のデータ全文</h2>
+      <textarea id="dataDump" rows="26"></textarea>
+      <div class="row gap top8">
+        <button id="applyDataDumpBtn">この内容を適用</button>
+        <button id="refreshDataDumpBtn">表示を更新</button>
+      </div>
+    </section>
+  </section>
 </main>
 <script src="editor.js"></script>
 </body>

@@ -3,17 +3,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>VOID ANGLER Layout & Asset Editor v3d</title>
+  <title>VOID ANGLER Layout & Asset Editor v4 compatible</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 <header class="topbar">
-  <div class="brand"><strong>VOID ANGLER</strong><span> Layout & Asset Editor v3d</span></div>
+  <div class="brand"><strong>VOID ANGLER</strong><span> Layout & Asset Editor v4 compatible</span></div>
   <div class="topActions">
     <button id="saveLocalBtn">端末保存</button>
     <button id="loadLocalBtn">端末読込</button>
     <label class="fileBtn">JSON読込<input id="importJsonInput" type="file" accept="application/json,.json"></label>
-    <button id="exportJsonBtn" class="primary">JSON出力</button>
+    <button id="exportGameBtn">ゲーム用出力</button>
+    <button id="exportJsonBtn" class="primary">プロジェクトJSON出力</button>
   </div>
 </header>
 
@@ -156,6 +157,11 @@
           <button id="clearPointModeBtn">モード解除</button>
         </div>
         <p id="assetModeText" class="muted top8">モード: 通常</p>
+        <div class="amtLegend top8">
+          <div><b class="legendA">A</b><span><strong>Anchor</strong> 回転・拡縮の中心</span></div>
+          <div><b class="legendM">M</b><span><strong>Mount</strong> スロットへ接続する点</span></div>
+          <div><b class="legendT">T</b><span><strong>Tip</strong> 弾・レーザー・糸などの発生点</span></div>
+        </div>
       </section>
       <section>
         <h2>現在のアセット</h2>
@@ -243,6 +249,20 @@
           <label><input id="snapInput" type="checkbox" checked>スナップ</label>
         </div>
         <label>スナップ幅<select id="snapPercentSelect"><option value="1">1%</option><option value="2">2%</option><option value="5">5%</option></select></label>
+        <hr class="softRule">
+        <h3>Game View</h3>
+        <div class="toggles">
+          <label><input id="showGameViewInput" type="checkbox" checked>表示範囲を表示</label>
+          <label><input id="showPointGuidesInput" type="checkbox" checked>A/M/T表示</label>
+        </div>
+        <div class="xygrid cameraGrid">
+          <label>X %<input id="cameraXInput" type="number" step="0.5"></label>
+          <label>Y %<input id="cameraYInput" type="number" step="0.5"></label>
+          <label>幅 %<input id="cameraWInput" type="number" step="0.5" min="5"></label>
+          <label>高さ %<input id="cameraHInput" type="number" step="0.5" min="5"></label>
+        </div>
+        <button id="fitCameraBtn" class="wide top8">現在の要素にGame Viewを合わせる</button>
+        <p class="muted tiny top8">青い枠がゲームに映る範囲です。枠内をドラッグで移動、右下ハンドルでサイズ変更できます。</p>
       </section>
       <section>
         <h2>要素一覧</h2>
@@ -267,6 +287,10 @@
       <div id="viewportFrame" class="viewportFrame phone">
         <div id="layoutPreview" class="layoutPreview gridOn safeOn"></div>
       </div>
+      <div class="gamePreviewBlock top8">
+        <div class="gamePreviewHeader"><strong>ゲーム実表示プレビュー</strong><span class="muted">Game Viewの中だけを拡大表示</span></div>
+        <div id="gameViewPreview" class="gameViewPreview"></div>
+      </div>
     </section>
 
     <aside class="panel rightCol">
@@ -276,6 +300,8 @@
         <div id="elementInspector" hidden>
           <label>表示名<input id="elementNameInput" type="text"></label>
           <label>アセット<select id="elementAssetInput"></select></label>
+          <label>配置基準<select id="elementPlacementInput"><option value="anchor">A: Anchor基準</option><option value="mount">M: Mount基準</option></select></label>
+          <p class="muted tiny">旧v3データはA基準のまま読み込みます。M基準にすると、x/yへアセットのMount点を正確に合わせます。</p>
           <div class="xygrid">
             <label>X %<input id="elementXInput" type="number" step="0.1"></label>
             <label>Y %<input id="elementYInput" type="number" step="0.1"></label>
@@ -317,6 +343,7 @@
   </section>
 </main>
 
+<script src="project-data.js"></script>
 <script src="editor.js"></script>
 </body>
 </html>

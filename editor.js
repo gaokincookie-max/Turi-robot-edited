@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'void-angler-layout-editor-v3d';
+const STORAGE_KEY = 'void-angler-layout-editor-v4-compatible';
 
 const PRESET_ASSETS = [
   ['ship_mk1','Ship Mk1','ship','bundled_assets/assets/ships/ship_mk1.png'],
@@ -97,10 +97,27 @@ function makePresetState(){
     keys.forEach(k=> layouts[sceneId][k] = { elements: defaultSceneElements(sceneId, k==='default'?1:Number(k)) });
   });
   return {
-    version:3,
+    version:4,
     assets, sources, layouts,
-    ui: { currentTab:'assetTab', selectedAssetId:'ship_mk1', selectedSourceId:'src_ship_sheet', scene:'battle_player', mk:'1', selectedElementId:null, viewport:'phone', showGrid:true, showSafe:true, snap:true, snapStep:1 },
+    cameras: makeDefaultCameras(),
+    ui: { currentTab:'assetTab', selectedAssetId:'ship_mk1', selectedSourceId:'src_ship_sheet', scene:'battle_player', mk:'1', selectedElementId:null, viewport:'phone', showGrid:true, showSafe:true, snap:true, snapStep:1, showGameView:true, showPointGuides:true },
   };
+}
+function makeDefaultCameras(){
+  return {
+    battle_player:{'1':{x:18,y:55,w:64,h:35},'2':{x:18,y:53,w:64,h:37},'3':{x:16,y:51,w:68,h:39},'4':{x:15,y:50,w:70,h:40}},
+    battle_enemy:{'1':{x:18,y:10,w:64,h:35},'2':{x:18,y:10,w:64,h:37},'3':{x:16,y:9,w:68,h:39},'4':{x:15,y:8,w:70,h:40}},
+    maint_ship:{'1':{x:18,y:24,w:64,h:52},'2':{x:16,y:22,w:68,h:56},'3':{x:14,y:20,w:72,h:60},'4':{x:12,y:18,w:76,h:64}},
+    maint_fishing:{default:{x:15,y:20,w:70,h:60}}
+  };
+}
+function currentCameraKey(){ return SCENES[state.ui.scene].usesMk ? state.ui.mk : 'default'; }
+function currentCamera(){
+  state.cameras ||= makeDefaultCameras();
+  state.cameras[state.ui.scene] ||= {};
+  const k=currentCameraKey();
+  if(!state.cameras[state.ui.scene][k]) state.cameras[state.ui.scene][k]=clone(makeDefaultCameras()[state.ui.scene]?.[k] || {x:10,y:10,w:80,h:80});
+  return state.cameras[state.ui.scene][k];
 }
 function repairState(saved){
   const base = makePresetState();
@@ -112,13 +129,20 @@ function repairState(saved){
   }
   saved.layouts = saved.layouts || base.layouts;
   saved.ui = Object.assign({}, base.ui, saved.ui || {});
+  saved.cameras = saved.cameras || clone(base.cameras);
+  for(const [sceneId, variants] of Object.entries(saved.layouts||{})){
+    for(const variant of Object.values(variants||{})){
+      for(const el of (variant?.elements||[])) if(!el.placementMode) el.placementMode='anchor';
+    }
+  }
   if(!saved.sources[saved.ui.selectedSourceId]) saved.ui.selectedSourceId = Object.keys(saved.sources)[0] || null;
   if(!saved.assets[saved.ui.selectedAssetId]) saved.ui.selectedAssetId = Object.keys(saved.assets)[0] || null;
-  saved.version = 3.1;
+  saved.version = 4;
+  saved.migratedFrom = saved.migratedFrom || 'v3-compatible';
   return saved;
 }
 function loadState(){ try{ const raw = localStorage.getItem(STORAGE_KEY); if(!raw) return null; const parsed = JSON.parse(raw); return repairState(parsed); }catch(e){ return null; } }
-let state = repairState(loadState() || makePresetState());
+let state = repairState(loadState() || window.VOID_ANGLER_IMPORTED_V3 || makePresetState());
 
 function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); refreshJsonViews(); }
 function currentAsset(){ return state.assets[state.ui.selectedAssetId] || null; }
@@ -148,7 +172,7 @@ function defaultSceneElements(sceneId, mk){
   if(sceneId === 'battle_enemy') elements.push(baseEl('laser','Laser','w_laser',50,shipY+2,15,10,180,7));
   return elements;
 }
-function baseEl(key,name,assetId,x,y,w,h,rotation=0,z=1){ return { id:uid(key), key, name, assetId, x, y, w, h, rotation, scale:1, z, opacity:1, flipX:false, flipY:false, visible:true, notes:'' }; }
+function baseEl(key,name,assetId,x,y,w,h,rotation=0,z=1){ return { id:uid(key), key, name, assetId, x, y, w, h, rotation, scale:1, z, opacity:1, flipX:false, flipY:false, visible:true, placementMode:'anchor', notes:'' }; }
 
 async function ensureAssetPrepared(asset){
   if(!asset) return null;
@@ -276,7 +300,7 @@ function drawPreviewCanvas(canvas, src, iw, ih, marks=[]){
 }
 
 async function renderLayoutEditor(){
-  $('#sceneSelect').value = state.ui.scene; $('#mkSelect').value = state.ui.mk; $('#mkSelect').disabled = !SCENES[state.ui.scene].usesMk; $('#viewportSelect').value = state.ui.viewport; $('#showGridInput').checked = !!state.ui.showGrid; $('#showSafeAreaInput').checked = !!state.ui.showSafe; $('#snapInput').checked = !!state.ui.snap; $('#snapPercentSelect').value = String(state.ui.snapStep || 1);
+  $('#sceneSelect').value = state.ui.scene; $('#mkSelect').value = state.ui.mk; $('#mkSelect').disabled = !SCENES[state.ui.scene].usesMk; $('#viewportSelect').value = state.ui.viewport; $('#showGridInput').checked = !!state.ui.showGrid; $('#showSafeAreaInput').checked = !!state.ui.showSafe; $('#snapInput').checked = !!state.ui.snap; $('#snapPercentSelect').value = String(state.ui.snapStep || 1); $('#showGameViewInput').checked=state.ui.showGameView!==false; $('#showPointGuidesInput').checked=state.ui.showPointGuides!==false; const cam=currentCamera(); $('#cameraXInput').value=round(cam.x,1); $('#cameraYInput').value=round(cam.y,1); $('#cameraWInput').value=round(cam.w,1); $('#cameraHInput').value=round(cam.h,1);
   await renderElementList(); await renderLayoutPreview(); renderElementInspector();
 }
 async function renderElementList(){
@@ -287,22 +311,63 @@ async function renderElementList(){
     row.innerHTML = `<div class="assetThumb">${thumb}</div><div class="assetMeta"><strong>${escapeHtml(el.name)}</strong><small>${escapeHtml(el.key)} / ${escapeHtml(el.assetId||'')}</small></div>`; list.appendChild(row);
   }
 }
-async function renderLayoutPreview(){
-  const preview = $('#layoutPreview'); preview.classList.toggle('gridOn', !!state.ui.showGrid); preview.classList.toggle('safeOn', !!state.ui.showSafe); $('#viewportFrame').className = `viewportFrame ${state.ui.viewport}`; preview.innerHTML = '<div class="centerCross"></div>';
-  const rect = preview.getBoundingClientRect();
-  for(const el of currentElements().slice().sort((a,b)=>a.z-b.z)){
-    const asset = state.assets[el.assetId]; if(!asset) continue; const proc = await getProcessedAsset(asset).catch(()=>null); if(!proc) continue;
-    const wrap = document.createElement('div'); wrap.className='layoutElement' + (el.id===state.ui.selectedElementId?' selected':'') + (!el.visible?' hiddenEl':''); wrap.dataset.id = el.id;
-    const wPx = rect.width*(el.w/100)*(el.scale||1), hPx = rect.height*(el.h/100)*(el.scale||1); const ax = proc.anchor.x/proc.width, ay = proc.anchor.y/proc.height; const leftPx = rect.width*(el.x/100)-wPx*ax, topPx = rect.height*(el.y/100)-hPx*ay;
-    wrap.style.left=`${leftPx}px`; wrap.style.top=`${topPx}px`; wrap.style.width=`${wPx}px`; wrap.style.height=`${hPx}px`; wrap.style.zIndex=el.z; wrap.style.opacity=el.opacity; wrap.style.transformOrigin=`${ax*100}% ${ay*100}%`; wrap.style.transform=`rotate(${el.rotation||0}deg) scale(${el.flipX?-1:1}, ${el.flipY?-1:1})`;
-    wrap.innerHTML = `<div class="elBody"><img src="${proc.url}"></div><div class="elName">${escapeHtml(el.name)}</div><div class="resizeHandle"></div>`;
-    wrap.addEventListener('pointerdown', onLayoutPointerDown);
-    preview.appendChild(wrap);
+function layoutGeometry(el, proc, rect){
+  const wPx=rect.width*(Number(el.w||10)/100)*(Number(el.scale||1));
+  const hPx=rect.height*(Number(el.h||10)/100)*(Number(el.scale||1));
+  const ax=(proc.anchor?.x ?? proc.width/2)/proc.width, ay=(proc.anchor?.y ?? proc.height/2)/proc.height;
+  const mx=(proc.mount?.x ?? proc.width/2)/proc.width, my=(proc.mount?.y ?? proc.height/2)/proc.height;
+  const tx=(proc.muzzle?.x ?? proc.width/2)/proc.width, ty=(proc.muzzle?.y ?? proc.height/2)/proc.height;
+  const targetX=rect.width*(Number(el.x||0)/100), targetY=rect.height*(Number(el.y||0)/100);
+  const rot=(Number(el.rotation)||0)*Math.PI/180, fx=el.flipX?-1:1, fy=el.flipY?-1:1;
+  const mode=el.placementMode==='mount'?'mount':'anchor';
+  const qx=(mode==='mount'?mx:ax)*wPx, qy=(mode==='mount'?my:ay)*hPx;
+  const apx=ax*wPx, apy=ay*hPx;
+  const dx=(qx-apx)*fx, dy=(qy-apy)*fy;
+  const rdx=dx*Math.cos(rot)-dy*Math.sin(rot), rdy=dx*Math.sin(rot)+dy*Math.cos(rot);
+  const leftPx=targetX-apx-rdx, topPx=targetY-apy-rdy;
+  return {wPx,hPx,ax,ay,mx,my,tx,ty,leftPx,topPx};
+}
+function pointMarkerHtml(cls,label,xPct,yPct){return `<i class="layoutPoint ${cls}" style="left:${xPct}%;top:${yPct}%">${label}</i>`;}
+async function buildLayoutElement(el, rect, interactive=true){
+  const asset=state.assets[el.assetId]; if(!asset) return null;
+  const proc=await getProcessedAsset(asset).catch(()=>null); if(!proc) return null;
+  const g=layoutGeometry(el,proc,rect);
+  const wrap=document.createElement('div');
+  wrap.className='layoutElement'+(interactive&&el.id===state.ui.selectedElementId?' selected':'')+(!el.visible?' hiddenEl':'');
+  wrap.dataset.id=el.id;
+  wrap.style.left=`${g.leftPx}px`;wrap.style.top=`${g.topPx}px`;wrap.style.width=`${g.wPx}px`;wrap.style.height=`${g.hPx}px`;wrap.style.zIndex=el.z;wrap.style.opacity=el.opacity;
+  wrap.style.transformOrigin=`${g.ax*100}% ${g.ay*100}%`;wrap.style.transform=`rotate(${el.rotation||0}deg) scale(${el.flipX?-1:1}, ${el.flipY?-1:1})`;
+  let guides='';
+  if(state.ui.showPointGuides && interactive){
+    guides+=pointMarkerHtml('a','A',g.ax*100,g.ay*100)+pointMarkerHtml('m','M',g.mx*100,g.my*100)+pointMarkerHtml('t','T',g.tx*100,g.ty*100);
   }
+  wrap.innerHTML=`<div class="elBody"><img src="${proc.url}"></div>${guides}<div class="placementBadge">${el.placementMode==='mount'?'M':'A'}</div>${interactive?`<div class="elName">${escapeHtml(el.name)}</div><div class="resizeHandle"></div>`:''}`;
+  if(interactive) wrap.addEventListener('pointerdown',onLayoutPointerDown);
+  return wrap;
+}
+function cameraStyle(cam,rect){return {left:rect.width*cam.x/100,top:rect.height*cam.y/100,width:rect.width*cam.w/100,height:rect.height*cam.h/100};}
+async function renderGameViewPreview(){
+  const host=$('#gameViewPreview'); if(!host) return; host.innerHTML='';
+  const cam=currentCamera(), hr=host.getBoundingClientRect(); if(hr.width<1||hr.height<1)return;
+  const scale=Math.min(hr.width/(cam.w/100), hr.height/(cam.h/100))/100;
+  const worldW=hr.width/(cam.w/100), worldH=hr.height/(cam.h/100);
+  const world=document.createElement('div'); world.className='gameWorld'; world.style.width=`${worldW}px`;world.style.height=`${worldH}px`;world.style.left=`${-cam.x/100*worldW}px`;world.style.top=`${-cam.y/100*worldH}px`;
+  const fakeRect={width:worldW,height:worldH};
+  for(const el of currentElements().slice().sort((a,b)=>a.z-b.z)){ const node=await buildLayoutElement(el,fakeRect,false); if(node) world.appendChild(node); }
+  host.appendChild(world);
+}
+async function renderLayoutPreview(){
+  const preview=$('#layoutPreview'); preview.classList.toggle('gridOn',!!state.ui.showGrid);preview.classList.toggle('safeOn',!!state.ui.showSafe);$('#viewportFrame').className=`viewportFrame ${state.ui.viewport}`;preview.innerHTML='<div class="centerCross"></div>';
+  const rect=preview.getBoundingClientRect();
+  for(const el of currentElements().slice().sort((a,b)=>a.z-b.z)){ const node=await buildLayoutElement(el,rect,true); if(node) preview.appendChild(node); }
+  if(state.ui.showGameView){
+    const cam=currentCamera(), cs=cameraStyle(cam,rect), box=document.createElement('div');box.className='gameViewBox';box.style.left=`${cs.left}px`;box.style.top=`${cs.top}px`;box.style.width=`${cs.width}px`;box.style.height=`${cs.height}px`;box.innerHTML='<div class="gameViewHandle"></div>';box.addEventListener('pointerdown',onCameraPointerDown);preview.appendChild(box);
+  }
+  await renderGameViewPreview();
 }
 function renderElementInspector(){
   const el = currentElement(); $('#noElementText').hidden = !!el; $('#elementInspector').hidden = !el; if(!el) return;
-  $('#elementNameInput').value = el.name || ''; $('#elementAssetInput').value = el.assetId || ''; $('#elementXInput').value = round(el.x,1); $('#elementYInput').value = round(el.y,1); $('#elementWInput').value = round(el.w,1); $('#elementHInput').value = round(el.h,1); $('#elementRotInput').value = el.rotation || 0; $('#elementScaleInput').value = el.scale || 1; $('#elementZInput').value = el.z || 1; $('#elementOpacityInput').value = el.opacity ?? 1; $('#elementFlipXInput').checked = !!el.flipX; $('#elementFlipYInput').checked = !!el.flipY; $('#elementVisibleInput').checked = !!el.visible; $('#elementNotesInput').value = el.notes || '';
+  $('#elementNameInput').value = el.name || ''; $('#elementAssetInput').value = el.assetId || ''; $('#elementPlacementInput').value=el.placementMode==='mount'?'mount':'anchor'; $('#elementXInput').value = round(el.x,1); $('#elementYInput').value = round(el.y,1); $('#elementWInput').value = round(el.w,1); $('#elementHInput').value = round(el.h,1); $('#elementRotInput').value = el.rotation || 0; $('#elementScaleInput').value = el.scale || 1; $('#elementZInput').value = el.z || 1; $('#elementOpacityInput').value = el.opacity ?? 1; $('#elementFlipXInput').checked = !!el.flipX; $('#elementFlipYInput').checked = !!el.flipY; $('#elementVisibleInput').checked = !!el.visible; $('#elementNotesInput').value = el.notes || '';
 }
 
 function refreshJsonViews(){ const json = JSON.stringify(state, null, 2); $('#jsonPreview').value = json; $('#dataDump').value = json; }
@@ -421,10 +486,23 @@ function syncAssetInspectorValues(){ const a=currentAsset(); if(!a) return; $('#
 
 function updateElementFromInspector(){
   const el = currentElement(); if(!el) return;
-  el.name = $('#elementNameInput').value; el.assetId = $('#elementAssetInput').value; el.x = Number($('#elementXInput').value)||0; el.y = Number($('#elementYInput').value)||0; el.w = Math.max(1, Number($('#elementWInput').value)||1); el.h = Math.max(1, Number($('#elementHInput').value)||1); el.rotation = Number($('#elementRotInput').value)||0; el.scale = Math.max(0.1, Number($('#elementScaleInput').value)||1); el.z = Number($('#elementZInput').value)||1; el.opacity = clamp(Number($('#elementOpacityInput').value)||1,0,1); el.flipX = $('#elementFlipXInput').checked; el.flipY = $('#elementFlipYInput').checked; el.visible = $('#elementVisibleInput').checked; el.notes = $('#elementNotesInput').value; renderAll();
+  el.name = $('#elementNameInput').value; el.assetId = $('#elementAssetInput').value; el.placementMode=$('#elementPlacementInput').value==='mount'?'mount':'anchor'; el.x = Number($('#elementXInput').value)||0; el.y = Number($('#elementYInput').value)||0; el.w = Math.max(1, Number($('#elementWInput').value)||1); el.h = Math.max(1, Number($('#elementHInput').value)||1); el.rotation = Number($('#elementRotInput').value)||0; el.scale = Math.max(0.1, Number($('#elementScaleInput').value)||1); el.z = Number($('#elementZInput').value)||1; el.opacity = clamp(Number($('#elementOpacityInput').value)||1,0,1); el.flipX = $('#elementFlipXInput').checked; el.flipY = $('#elementFlipYInput').checked; el.visible = $('#elementVisibleInput').checked; el.notes = $('#elementNotesInput').value; renderAll();
 }
 function syncElementInspectorValues(){ const el=currentElement(); if(!el) return; $('#elementXInput').value=round(el.x,1); $('#elementYInput').value=round(el.y,1); $('#elementWInput').value=round(el.w,1); $('#elementHInput').value=round(el.h,1); }
 
+let cameraDrag=null;
+function onCameraPointerDown(e){
+  const rect=$('#layoutPreview').getBoundingClientRect(), cam=clone(currentCamera()), resize=e.target.classList.contains('gameViewHandle');
+  cameraDrag={type:resize?'resize':'move',startX:e.clientX,startY:e.clientY,startCam:cam,w:rect.width,h:rect.height};
+  e.stopPropagation();e.preventDefault();
+}
+function syncCameraInputs(){const cam=currentCamera();$('#cameraXInput').value=round(cam.x,1);$('#cameraYInput').value=round(cam.y,1);$('#cameraWInput').value=round(cam.w,1);$('#cameraHInput').value=round(cam.h,1);}
+function fitCameraToElements(){
+  const els=currentElements().filter(e=>e.visible!==false); if(!els.length)return;
+  let minX=100,minY=100,maxX=0,maxY=0;
+  for(const e of els){const sw=(e.w||10)*(e.scale||1),sh=(e.h||10)*(e.scale||1);minX=Math.min(minX,e.x-sw*.6);maxX=Math.max(maxX,e.x+sw*.6);minY=Math.min(minY,e.y-sh*.6);maxY=Math.max(maxY,e.y+sh*.6);}
+  const pad=5,cam=currentCamera();cam.x=round(clamp(minX-pad,0,95),1);cam.y=round(clamp(minY-pad,0,95),1);cam.w=round(clamp(maxX-minX+pad*2,5,100-cam.x),1);cam.h=round(clamp(maxY-minY+pad*2,5,100-cam.y),1);renderLayoutEditor();saveState();
+}
 function onCropPointerDown(e){ const asset=currentAsset(); if(!asset) return; const handle=e.target.dataset.handle; cropDrag = { type: handle ? 'resize':'move', handle, startX:e.clientX, startY:e.clientY, startCrop: clone(asset.crop) }; e.preventDefault(); }
 function onAssetStagePointerDown(e){ const asset=currentAsset(); if(!asset || adjustMode==='通常') return; const m=getStageImageMetrics(); if(!m) return; const stageRect=$('#assetStage').getBoundingClientRect(); const px=(e.clientX-stageRect.left-m.dx)/m.scaleX - asset.crop.x; const py=(e.clientY-stageRect.top-m.dy)/m.scaleY - asset.crop.y; const pt={x:clamp(Math.round(px),0,asset.crop.w), y:clamp(Math.round(py),0,asset.crop.h)}; if(adjustMode==='A') asset.anchor=pt; else if(adjustMode==='M') asset.mount=pt; else if(adjustMode==='T') asset.muzzle=pt; invalidateAssetCache(asset); renderAll(); }
 function onLayoutPointerDown(e){ state.ui.selectedElementId=e.currentTarget.dataset.id; const previewRect=$('#layoutPreview').getBoundingClientRect(); const el=currentElement(); const isResize=e.target.classList.contains('resizeHandle'); layoutDrag={type:isResize?'resize':'move', startX:e.clientX, startY:e.clientY, startEl:clone(el), previewW:previewRect.width, previewH:previewRect.height}; renderLayoutEditor(); e.stopPropagation(); e.preventDefault(); }
@@ -432,10 +510,16 @@ function onGlobalPointerMove(e){
   const asset = currentAsset();
   if(cropDrag && asset){ const m=getStageImageMetrics(); const dx=(e.clientX-cropDrag.startX)/m.scaleX, dy=(e.clientY-cropDrag.startY)/m.scaleY, c=clone(cropDrag.startCrop); if(cropDrag.type==='move'){ asset.crop.x=clamp(Math.round(c.x+dx),0,asset.naturalW-c.w); asset.crop.y=clamp(Math.round(c.y+dy),0,asset.naturalH-c.h); } else { if(cropDrag.handle.includes('n')){ asset.crop.y=clamp(Math.round(c.y+dy),0,c.y+c.h-1); asset.crop.h=clamp(Math.round(c.h-dy),1,asset.naturalH-asset.crop.y); } if(cropDrag.handle.includes('s')){ asset.crop.h=clamp(Math.round(c.h+dy),1,asset.naturalH-c.y); asset.crop.y=c.y; } if(cropDrag.handle.includes('w')){ asset.crop.x=clamp(Math.round(c.x+dx),0,c.x+c.w-1); asset.crop.w=clamp(Math.round(c.w-dx),1,asset.naturalW-asset.crop.x); } if(cropDrag.handle.includes('e')){ asset.crop.w=clamp(Math.round(c.w+dx),1,asset.naturalW-c.x); asset.crop.x=c.x; } asset.anchor.x=clamp(asset.anchor.x,0,asset.crop.w); asset.anchor.y=clamp(asset.anchor.y,0,asset.crop.h); asset.mount.x=clamp(asset.mount.x,0,asset.crop.w); asset.mount.y=clamp(asset.mount.y,0,asset.crop.h); asset.muzzle.x=clamp(asset.muzzle.x,0,asset.crop.w); asset.muzzle.y=clamp(asset.muzzle.y,0,asset.crop.h); }
     invalidateAssetCache(asset); syncAssetInspectorValues(); updateCropOverlay(); drawAdjustPreviews(); saveState(); }
+  if(cameraDrag){const cam=currentCamera(),dx=(e.clientX-cameraDrag.startX)/cameraDrag.w*100,dy=(e.clientY-cameraDrag.startY)/cameraDrag.h*100;if(cameraDrag.type==='move'){cam.x=round(clamp(cameraDrag.startCam.x+dx,0,100-cameraDrag.startCam.w),1);cam.y=round(clamp(cameraDrag.startCam.y+dy,0,100-cameraDrag.startCam.h),1);}else{cam.w=round(clamp(cameraDrag.startCam.w+dx,5,100-cameraDrag.startCam.x),1);cam.h=round(clamp(cameraDrag.startCam.h+dy,5,100-cameraDrag.startCam.y),1);}syncCameraInputs();renderLayoutPreview();saveState();}
   if(layoutDrag){ const el=currentElement(); if(!el) return; if(layoutDrag.type==='move'){ const step = state.ui.snapStep || 1; let x=layoutDrag.startEl.x + ((e.clientX-layoutDrag.startX)/layoutDrag.previewW)*100; let y=layoutDrag.startEl.y + ((e.clientY-layoutDrag.startY)/layoutDrag.previewH)*100; if(state.ui.snap){ x=Math.round(x/step)*step; y=Math.round(y/step)*step; } el.x=round(clamp(x,0,100),1); el.y=round(clamp(y,0,100),1); } else { const step = state.ui.snapStep || 1; let w=layoutDrag.startEl.w + ((e.clientX-layoutDrag.startX)/layoutDrag.previewW)*100; let h=layoutDrag.startEl.h + ((e.clientY-layoutDrag.startY)/layoutDrag.previewH)*100; if(state.ui.snap){ w=Math.round(w/step)*step; h=Math.round(h/step)*step; } el.w=round(Math.max(1,w),1); el.h=round(Math.max(1,h),1); } syncElementInspectorValues(); renderLayoutPreview(); saveState(); }
 }
-function onGlobalPointerUp(){ cropDrag=null; layoutDrag=null; if(imageEditor.drawing && imageEditor.tool.startsWith('rect')){ applyRectToMask(imageEditor.tool==='rectErase'); imageEditor.drawing=null; renderImageEditor(); } else imageEditor.drawing=null; }
+function onGlobalPointerUp(){ cropDrag=null; layoutDrag=null; cameraDrag=null; if(imageEditor.drawing && imageEditor.tool.startsWith('rect')){ applyRectToMask(imageEditor.tool==='rectErase'); imageEditor.drawing=null; renderImageEditor(); } else imageEditor.drawing=null; }
 
+function gameExportPayload(){
+  const assets={};
+  for(const [id,a] of Object.entries(state.assets)) assets[id]={id:a.id,name:a.name,category:a.category,src:a._processed?.value?.url||a.src,anchor:a._processed?.value?.anchor||a.anchor,mount:a._processed?.value?.mount||a.mount,tip:a._processed?.value?.muzzle||a.muzzle,width:a._processed?.value?.width||a.crop?.w||a.naturalW,height:a._processed?.value?.height||a.crop?.h||a.naturalH};
+  return {version:4,coordinateSystem:{unit:'percent',viewportBasis:'scene-canvas',scaleMode:'size-before-rotation',anchorMeaning:'transform-origin',mountMeaning:'attachment-point',tipMeaning:'emitter-point'},assets,layouts:state.layouts,cameras:state.cameras};
+}
 function bindEvents(){
   $$('.tab').forEach(btn=>btn.onclick=()=>{ state.ui.currentTab=btn.dataset.tab; renderAll(); });
   $('#assetSearch').oninput = renderAssetList; $('#sourceSearch').oninput = renderSourceList;
@@ -474,18 +558,19 @@ function bindEvents(){
   $('#mkSelect').onchange = ()=>{ state.ui.mk = $('#mkSelect').value; state.ui.selectedElementId = currentElements()[0]?.id || null; renderAll(); };
   $('#viewportSelect').onchange = ()=>{ state.ui.viewport = $('#viewportSelect').value; renderLayoutEditor(); saveState(); };
   $('#showGridInput').onchange = ()=>{ state.ui.showGrid = $('#showGridInput').checked; renderLayoutEditor(); saveState(); }; $('#showSafeAreaInput').onchange = ()=>{ state.ui.showSafe = $('#showSafeAreaInput').checked; renderLayoutEditor(); saveState(); }; $('#snapInput').onchange = ()=>{ state.ui.snap = $('#snapInput').checked; saveState(); }; $('#snapPercentSelect').onchange = ()=>{ state.ui.snapStep = Number($('#snapPercentSelect').value)||1; saveState(); };
+  $('#showGameViewInput').onchange=()=>{state.ui.showGameView=$('#showGameViewInput').checked;renderLayoutEditor();saveState();}; $('#showPointGuidesInput').onchange=()=>{state.ui.showPointGuides=$('#showPointGuidesInput').checked;renderLayoutEditor();saveState();}; ['#cameraXInput','#cameraYInput','#cameraWInput','#cameraHInput'].forEach(sel=>$(sel).addEventListener('input',()=>{const c=currentCamera();c.x=clamp(Number($('#cameraXInput').value)||0,0,95);c.y=clamp(Number($('#cameraYInput').value)||0,0,95);c.w=clamp(Number($('#cameraWInput').value)||5,5,100-c.x);c.h=clamp(Number($('#cameraHInput').value)||5,5,100-c.y);renderLayoutPreview();saveState();})); $('#fitCameraBtn').onclick=fitCameraToElements;
   $('#addElementBtn').onclick = ()=>{ const assetId=Object.keys(state.assets)[0]; const el=baseEl('element','New Element',assetId,50,50,14,10,0,10); currentElements().push(el); state.ui.selectedElementId=el.id; renderAll(); };
   $('#duplicateElementBtn').onclick = ()=>{ const el=currentElement(); if(!el) return; const cp=clone(el); cp.id=uid('el'); cp.name += ' copy'; cp.x += 2; cp.y += 2; currentElements().push(cp); state.ui.selectedElementId=cp.id; renderAll(); };
   $('#deleteElementBtn').onclick = ()=>{ const arr=currentElements(); const idx=arr.findIndex(e=>e.id===state.ui.selectedElementId); if(idx<0) return; arr.splice(idx,1); state.ui.selectedElementId=arr[0]?.id || null; renderAll(); };
   $('#resetElementBtn').onclick = ()=>{ const cur=currentElement(); if(!cur) return; const d=defaultSceneElements(state.ui.scene, Number(state.ui.mk||1)).find(e=>e.key===cur.key); if(d){ Object.assign(cur, clone(d), {id:cur.id}); renderAll(); } };
   $('#resetSceneBtn').onclick = ()=>{ state.layouts[state.ui.scene][currentSceneKey()].elements = defaultSceneElements(state.ui.scene, Number(state.ui.mk||1)); state.ui.selectedElementId = currentElements()[0]?.id || null; renderAll(); };
   $('#mirrorSceneBtn').onclick = ()=>{ if(state.ui.scene!=='battle_player'){ alert('まず「戦闘: 味方艦」で調整してください。'); return; } const src=clone(state.layouts.battle_player[state.ui.mk].elements); state.layouts.battle_enemy[state.ui.mk].elements = src.map(el=>({ ...el, id:uid('mirror'), y:round(100-el.y,1), rotation:(Number(el.rotation)||0)+180 })); alert('戦闘: 敵艦 に上下反転コピーしました。'); renderAll(); };
-  ['#elementNameInput','#elementAssetInput','#elementXInput','#elementYInput','#elementWInput','#elementHInput','#elementRotInput','#elementScaleInput','#elementZInput','#elementOpacityInput','#elementNotesInput'].forEach(sel=>$(sel).addEventListener('input', updateElementFromInspector)); ['#elementFlipXInput','#elementFlipYInput','#elementVisibleInput'].forEach(sel=>$(sel).addEventListener('change', updateElementFromInspector));
+  ['#elementNameInput','#elementAssetInput','#elementPlacementInput','#elementXInput','#elementYInput','#elementWInput','#elementHInput','#elementRotInput','#elementScaleInput','#elementZInput','#elementOpacityInput','#elementNotesInput'].forEach(sel=>$(sel).addEventListener('input', updateElementFromInspector)); ['#elementFlipXInput','#elementFlipYInput','#elementVisibleInput'].forEach(sel=>$(sel).addEventListener('change', updateElementFromInspector));
 
   $('#copyJsonBtn').onclick = async ()=>{ await navigator.clipboard.writeText(JSON.stringify(state,null,2)); alert('JSONをコピーしました。'); };
-  $('#downloadJsonBtn').onclick = ()=> downloadText(JSON.stringify(state,null,2), 'void-angler-layout-v3.json'); $('#exportJsonBtn').onclick = ()=> downloadText(JSON.stringify(state,null,2), 'void-angler-layout-v3.json');
-  $('#importJsonInput').addEventListener('change', async e=>{ const file=e.target.files?.[0]; if(!file) return; try{ state = JSON.parse(await file.text()); if(!state.ui) state.ui = makePresetState().ui; await openSourceInEditor(state.ui.selectedSourceId || Object.keys(state.sources)[0]); renderAll(); } catch(err){ alert('JSON読込に失敗しました'); console.error(err);} e.target.value=''; });
-  $('#applyDataDumpBtn').onclick = async ()=>{ try{ state = JSON.parse($('#dataDump').value); if(!state.ui) state.ui = makePresetState().ui; await openSourceInEditor(state.ui.selectedSourceId || Object.keys(state.sources)[0]); renderAll(); }catch(err){ alert('JSONの形式が不正です'); } };
+  $('#downloadJsonBtn').onclick = ()=> downloadText(JSON.stringify(state,null,2), 'void-angler-layout-v4-project.json'); $('#exportJsonBtn').onclick = ()=> downloadText(JSON.stringify(state,null,2), 'void-angler-layout-v4-project.json'); $('#exportGameBtn').onclick=()=>downloadText(JSON.stringify(gameExportPayload(),null,2),'void-angler-game-layout-v4.json');
+  $('#importJsonInput').addEventListener('change', async e=>{ const file=e.target.files?.[0]; if(!file) return; try{ state = repairState(JSON.parse(await file.text())); await openSourceInEditor(state.ui.selectedSourceId || Object.keys(state.sources)[0]); renderAll(); } catch(err){ alert('JSON読込に失敗しました'); console.error(err);} e.target.value=''; });
+  $('#applyDataDumpBtn').onclick = async ()=>{ try{ state = repairState(JSON.parse($('#dataDump').value)); await openSourceInEditor(state.ui.selectedSourceId || Object.keys(state.sources)[0]); renderAll(); }catch(err){ alert('JSONの形式が不正です'); } };
   $('#refreshDataDumpBtn').onclick = refreshJsonViews;
   $('#saveLocalBtn').onclick = ()=>{ saveState(); alert('端末に保存しました。'); };
   $('#loadLocalBtn').onclick = async ()=>{ const loaded=loadState(); if(loaded){ state=loaded; await openSourceInEditor(state.ui.selectedSourceId || Object.keys(state.sources)[0]); renderAll(); alert('端末保存データを読み込みました。'); } else alert('保存データがありません。'); };

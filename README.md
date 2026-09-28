@@ -1,50 +1,20 @@
-# VOID ANGLER Layout & Asset Editor v3
+# VOID ANGLER Layout & Asset Editor v4 compatible
 
-## v3で追加したこと
-- **画像編集タブ**を追加
-- 大きな元画像（スプライトシート）をそのまま表示して編集可能
-- **ブラシ追加 / ブラシ消去 / 矩形追加 / 矩形消去** に対応
-- 選択部分を **新規アセット保存** または **現在のアセットに上書き** 可能
-- 画像編集 → アセット調整 → レイアウト調整、の流れで扱える構成に変更
+v3dの操作感を保った互換改良版です。`index.html` を開いて使えます。
 
-## 基本の流れ
-1. **画像編集**で元画像から必要部分を切り抜く
-2. **アセット調整**で A / M / T（Anchor / Mount / Tip）を整える
-3. **レイアウト調整**で場面ごとの配置を詰める
+## 主な変更
+- 最初に共有されたv3原本JSONを初期プロジェクトとして内蔵。加工済み画像・Crop・A/M/T・既存レイアウトを引き継ぎます。
+- Game View（実ゲーム表示範囲）をレイアウト画面に追加。ドラッグ移動・右下ハンドルでサイズ変更できます。
+- Game View内だけを表示する「ゲーム実表示プレビュー」を追加。
+- A / M / Tの意味を明示。
+  - A = Anchor: 回転・拡縮の中心
+  - M = Mount: スロットへの接続点
+  - T = Tip: 弾・レーザー・糸などの発生点
+- 各レイアウト要素に「A基準 / M基準」を追加。旧v3はA基準のまま読み込むため既存表示を壊しません。
+- `ゲーム用出力` で、カメラ・A/M/T・配置基準を含んだv4 JSONを出力できます。
 
-## 画像編集のポイント
-- **不透明部分を全選択**: 元画像の不透明ピクセルを一気に選択
-- **ブラシ追加 / ブラシ消去**: 細かい場所を自由に調整
-- **矩形追加 / 矩形消去**: ざっくり範囲を残す・消す
-- **選択部分を新規アセット保存**: 透過PNG相当の新アセットとして登録
+## 互換性
+旧v3 JSONはそのままJSON読込できます。読込時にv4形式へ非破壊移行します。
 
-## 同梱ソース
-- 味方艦シート
-- 武器シート
-- 装備シート
-- 釣具シート
-- 素材シート
-- 敵艦シート
-- 敵武器シート
-- 敵装備シート
-
-## 補足
-- 保存データはブラウザの `localStorage` に保存されます
-- JSON出力を使うと、別環境へ状態を持ち出せます
-
-
-## v3b
-- Windows等でZIP展開時に日本語ファイル名が文字化けする環境向けに、同梱元画像の実ファイル名をASCII英数字へ変更しました。
-- 表示名は日本語のままです。
-
-
-## v3c clean filename fix
-- Removed all duplicate source-sheet files with Japanese filenames.
-- All bundled source-sheet paths now use ASCII-only filenames under `bundled_sources/`.
-- Fixed the remaining enemy ship source path.
-
-
-## v3d source list fix
-- Uses a fresh localStorage key so broken/stale v3 data cannot hide bundled sources.
-- Repairs missing `sources` entries automatically from the bundled source list.
-- Falls back to the first valid source when the selected source is missing.
+## 方針
+エディタで確認したGame Viewとゲーム側が同じデータを使うことを前提にしています。次のゲーム統合作業では、このv4出力を共通Rendererで直接読む形にするのが安全です。

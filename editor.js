@@ -346,14 +346,34 @@ async function buildLayoutElement(el, rect, interactive=true){
   return wrap;
 }
 function cameraStyle(cam,rect){return {left:rect.width*cam.x/100,top:rect.height*cam.y/100,width:rect.width*cam.w/100,height:rect.height*cam.h/100};}
+function viewportVirtualSize(viewport=state.ui.viewport){
+  if(viewport==='landscape') return {width:1600,height:900};
+  if(viewport==='square') return {width:1000,height:1000};
+  if(viewport==='wide') return {width:2100,height:900};
+  return {width:900,height:1600}; // phone
+}
 async function renderGameViewPreview(){
   const host=$('#gameViewPreview'); if(!host) return; host.innerHTML='';
-  const cam=currentCamera(), hr=host.getBoundingClientRect(); if(hr.width<1||hr.height<1)return;
-  const scale=Math.min(hr.width/(cam.w/100), hr.height/(cam.h/100))/100;
-  const worldW=hr.width/(cam.w/100), worldH=hr.height/(cam.h/100);
-  const world=document.createElement('div'); world.className='gameWorld'; world.style.width=`${worldW}px`;world.style.height=`${worldH}px`;world.style.left=`${-cam.x/100*worldW}px`;world.style.top=`${-cam.y/100*worldH}px`;
+  const cam=currentCamera(), base=viewportVirtualSize();
+  const camPx={
+    x:base.width*(cam.x/100), y:base.height*(cam.y/100),
+    width:base.width*(cam.w/100), height:base.height*(cam.h/100)
+  };
+  // The preview itself must have the exact same aspect ratio as the camera rectangle.
+  // This avoids stretching a portrait Game View into the old fixed landscape preview box.
+  host.style.aspectRatio=`${camPx.width} / ${camPx.height}`;
+  const hr=host.getBoundingClientRect(); if(hr.width<1||hr.height<1||camPx.width<1||camPx.height<1)return;
+  const scale=Math.min(hr.width/camPx.width,hr.height/camPx.height);
+  const shownW=camPx.width*scale, shownH=camPx.height*scale;
+  const centerX=(hr.width-shownW)/2, centerY=(hr.height-shownH)/2;
+  const worldW=base.width*scale, worldH=base.height*scale;
+  const world=document.createElement('div'); world.className='gameWorld';
+  world.style.width=`${worldW}px`; world.style.height=`${worldH}px`;
+  world.style.left=`${centerX-camPx.x*scale}px`; world.style.top=`${centerY-camPx.y*scale}px`;
   const fakeRect={width:worldW,height:worldH};
-  for(const el of currentElements().slice().sort((a,b)=>a.z-b.z)){ const node=await buildLayoutElement(el,fakeRect,false); if(node) world.appendChild(node); }
+  for(const el of currentElements().slice().sort((a,b)=>a.z-b.z)){
+    const node=await buildLayoutElement(el,fakeRect,false); if(node) world.appendChild(node);
+  }
   host.appendChild(world);
 }
 async function renderLayoutPreview(){

@@ -57,3 +57,19 @@ canvas{width:100%;height:auto;background:linear-gradient(45deg,#172439 25%,#1320
 
 /* ===== v4.2 shared Canvas Renderer comparison ===== */
 .previewCompareGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}.previewCompareItem{min-width:0}.previewLabel{display:block;color:#9fb4d3;margin:0 0 6px 4px}.canvasGameViewPreview{display:block;width:100%;height:auto;margin:0 auto;border-radius:12px;border:1px solid #314866;background:#081019}.canvasPreviewActions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px}.canvasPreviewActions button{flex:none}@media(max-width:900px){.previewCompareGrid{grid-template-columns:1fr}}
+
+/* ===== v4.4 Canvas-canonical editing ===== */
+.layoutPreview{isolation:isolate;}
+.layoutMainCanvas{position:absolute;inset:0;display:block;width:100%;height:100%;z-index:0;pointer-events:none;background:transparent;image-rendering:pixelated;}
+.layoutPreview .centerCross{z-index:2;}
+.layoutElement.editOverlay{background:transparent;outline:1px dashed rgba(92,242,255,.16);outline-offset:-1px;}
+.layoutElement.editOverlay:hover{outline-color:rgba(92,242,255,.58);background:rgba(92,242,255,.035);}
+.layoutElement.editOverlay.selected{outline:2px solid rgba(92,242,255,.92);background:rgba(92,242,255,.055);box-shadow:0 0 0 1px rgba(5,15,25,.55),0 0 14px rgba(92,242,255,.18);}
+.layoutElement.editOverlay .elName{z-index:24;}
+.layoutElement.editOverlay .placementBadge{z-index:24;}
+.layoutElement.editOverlay .resizeHandle{z-index:25;}
+.layoutElement.editOverlay .layoutPoint{z-index:26;}
+.canonicalPreview{padding:6px;border-radius:14px;background:rgba(92,242,255,.035);box-shadow:inset 0 0 0 1px rgba(92,242,255,.12);}
+.canonicalPreview .previewLabel{color:#bafaff;}
+.legacyPreview{opacity:.72;}
+.toolbarLine strong{color:#8ff7ff;}

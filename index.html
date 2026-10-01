@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>VOID ANGLER Layout & Asset Editor v4.3 Canvas</title>
+  <title>VOID ANGLER Layout & Asset Editor v4.4 Canvas Canonical</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 <header class="topbar">
-  <div class="brand"><strong>VOID ANGLER</strong><span> Layout & Asset Editor v4.3 Canvas</span></div>
+  <div class="brand"><strong>VOID ANGLER</strong><span> Layout & Asset Editor v4.4 Canvas Canonical</span></div>
   <div class="topActions">
     <button id="saveLocalBtn">端末保存</button>
     <button id="loadLocalBtn">端末読込</button>
@@ -282,16 +282,16 @@
 
     <section class="panel centerCol">
       <div class="toolbarLine">
-        <span>ドラッグで移動。右下ハンドルでサイズ変更。数値でも微調整できます。</span>
+        <span><strong>Canvas編集モード</strong> — 見えている絵がゲーム用共通Rendererの出力です。ドラッグで移動、右下ハンドルでサイズ変更。</span>
       </div>
       <div id="viewportFrame" class="viewportFrame phone">
         <div id="layoutPreview" class="layoutPreview gridOn safeOn"></div>
       </div>
       <div class="gamePreviewBlock top8">
         <div class="gamePreviewHeader"><strong>ゲーム実表示プレビュー</strong><span class="muted">Game Viewの中だけを拡大表示</span></div>
-        <div class="previewCompareGrid">
-          <div class="previewCompareItem"><small class="previewLabel">従来DOM Renderer</small><div id="gameViewPreview" class="gameViewPreview"></div></div>
-          <div class="previewCompareItem"><small class="previewLabel">共通Canvas Renderer</small><canvas id="canvasGameViewPreview" class="canvasGameViewPreview"></canvas></div>
+        <div class="previewCompareGrid canvasFirst">
+          <div class="previewCompareItem canonicalPreview"><small class="previewLabel"><strong>正式: 共通Canvas Renderer</strong> — ゲームもこの描画を使用</small><canvas id="canvasGameViewPreview" class="canvasGameViewPreview"></canvas></div>
+          <div class="previewCompareItem legacyPreview"><small class="previewLabel">参考: 旧DOM Renderer（移行確認用）</small><div id="gameViewPreview" class="gameViewPreview"></div></div>
         </div>
         <div class="canvasPreviewActions"><span id="canvasRendererStatus" class="muted tiny">Canvas Renderer待機中</span><button id="downloadCanvasPreviewBtn">Canvas PNG保存</button></div>
       </div>

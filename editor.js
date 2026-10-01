@@ -97,7 +97,7 @@ function makePresetState(){
     keys.forEach(k=> layouts[sceneId][k] = { elements: defaultSceneElements(sceneId, k==='default'?1:Number(k)) });
   });
   return {
-    version:4,
+    version:4.4,
     assets, sources, layouts,
     cameras: makeDefaultCameras(),
     ui: { currentTab:'assetTab', selectedAssetId:'ship_mk1', selectedSourceId:'src_ship_sheet', scene:'battle_player', mk:'1', selectedElementId:null, viewport:'phone', showGrid:true, showSafe:true, snap:true, snapStep:1, showGameView:true, showPointGuides:true },
@@ -137,7 +137,7 @@ function repairState(saved){
   }
   if(!saved.sources[saved.ui.selectedSourceId]) saved.ui.selectedSourceId = Object.keys(saved.sources)[0] || null;
   if(!saved.assets[saved.ui.selectedAssetId]) saved.ui.selectedAssetId = Object.keys(saved.assets)[0] || null;
-  saved.version = 4;
+  saved.version = 4.4;
   saved.migratedFrom = saved.migratedFrom || 'v3-compatible';
   return saved;
 }
@@ -312,28 +312,21 @@ async function renderElementList(){
   }
 }
 function layoutGeometry(el, proc, rect){
+  if(window.VoidAnglerCanvasRenderer?.elementGeometry) return window.VoidAnglerCanvasRenderer.elementGeometry(el,proc,rect);
+  // Emergency fallback only. v4.4 normally uses the shared Canvas geometry.
   const wPx=rect.width*(Number(el.w||10)/100)*(Number(el.scale||1));
   const hPx=rect.height*(Number(el.h||10)/100)*(Number(el.scale||1));
-  const ax=(proc.anchor?.x ?? proc.width/2)/proc.width, ay=(proc.anchor?.y ?? proc.height/2)/proc.height;
-  const mx=(proc.mount?.x ?? proc.width/2)/proc.width, my=(proc.mount?.y ?? proc.height/2)/proc.height;
-  const tx=(proc.muzzle?.x ?? proc.width/2)/proc.width, ty=(proc.muzzle?.y ?? proc.height/2)/proc.height;
-  const targetX=rect.width*(Number(el.x||0)/100), targetY=rect.height*(Number(el.y||0)/100);
-  const rot=(Number(el.rotation)||0)*Math.PI/180, fx=el.flipX?-1:1, fy=el.flipY?-1:1;
-  const mode=el.placementMode==='mount'?'mount':'anchor';
-  const qx=(mode==='mount'?mx:ax)*wPx, qy=(mode==='mount'?my:ay)*hPx;
-  const apx=ax*wPx, apy=ay*hPx;
-  const dx=(qx-apx)*fx, dy=(qy-apy)*fy;
-  const rdx=dx*Math.cos(rot)-dy*Math.sin(rot), rdy=dx*Math.sin(rot)+dy*Math.cos(rot);
-  const leftPx=targetX-apx-rdx, topPx=targetY-apy-rdy;
-  return {wPx,hPx,ax,ay,mx,my,tx,ty,leftPx,topPx};
+  const ax=.5,ay=.5,mx=.5,my=.5,tx=.5,ty=.5;
+  return {wPx,hPx,ax,ay,mx,my,tx,ty,leftPx:rect.width*(Number(el.x||0)/100)-wPx/2,topPx:rect.height*(Number(el.y||0)/100)-hPx/2};
 }
+
 function pointMarkerHtml(cls,label,xPct,yPct){return `<i class="layoutPoint ${cls}" style="left:${xPct}%;top:${yPct}%">${label}</i>`;}
-async function buildLayoutElement(el, rect, interactive=true){
+async function buildLayoutElement(el, rect, interactive=true, showImage=true){
   const asset=state.assets[el.assetId]; if(!asset) return null;
   const proc=await getProcessedAsset(asset).catch(()=>null); if(!proc) return null;
   const g=layoutGeometry(el,proc,rect);
   const wrap=document.createElement('div');
-  wrap.className='layoutElement'+(interactive&&el.id===state.ui.selectedElementId?' selected':'')+(!el.visible?' hiddenEl':'');
+  wrap.className='layoutElement'+(interactive?' editOverlay':'')+(interactive&&el.id===state.ui.selectedElementId?' selected':'')+(!el.visible?' hiddenEl':'');
   wrap.dataset.id=el.id;
   wrap.style.left=`${g.leftPx}px`;wrap.style.top=`${g.topPx}px`;wrap.style.width=`${g.wPx}px`;wrap.style.height=`${g.hPx}px`;wrap.style.zIndex=el.z;wrap.style.opacity=el.opacity;
   wrap.style.transformOrigin=`${g.ax*100}% ${g.ay*100}%`;wrap.style.transform=`rotate(${el.rotation||0}deg) scale(${el.flipX?-1:1}, ${el.flipY?-1:1})`;
@@ -341,7 +334,7 @@ async function buildLayoutElement(el, rect, interactive=true){
   if(state.ui.showPointGuides && interactive){
     guides+=pointMarkerHtml('a','A',g.ax*100,g.ay*100)+pointMarkerHtml('m','M',g.mx*100,g.my*100)+pointMarkerHtml('t','T',g.tx*100,g.ty*100);
   }
-  wrap.innerHTML=`<div class="elBody"><img src="${proc.url}"></div>${guides}<div class="placementBadge">${el.placementMode==='mount'?'M':'A'}</div>${interactive?`<div class="elName">${escapeHtml(el.name)}</div><div class="resizeHandle"></div>`:''}`;
+  wrap.innerHTML=`${showImage?`<div class="elBody"><img src="${proc.url}"></div>`:''}${guides}<div class="placementBadge">${el.placementMode==='mount'?'M':'A'}</div>${interactive?`<div class="elName">${escapeHtml(el.name)}</div><div class="resizeHandle"></div>`:''}`;
   if(interactive) wrap.addEventListener('pointerdown',onLayoutPointerDown);
   return wrap;
 }
@@ -352,18 +345,34 @@ function viewportVirtualSize(viewport=state.ui.viewport){
   if(viewport==='wide') return {width:2100,height:900};
   return {width:900,height:1600}; // phone
 }
+async function collectProcessedAssets(elements=currentElements()){
+  const processedAssets={};
+  for(const el of elements){
+    if(processedAssets[el.assetId]) continue;
+    const asset=state.assets[el.assetId]; if(!asset) continue;
+    const proc=await getProcessedAsset(asset).catch(()=>null); if(proc) processedAssets[el.assetId]=proc;
+  }
+  return processedAssets;
+}
+async function renderMainCanvasPreview(preview, rect){
+  if(!window.VoidAnglerCanvasRenderer) return null;
+  const canvas=document.createElement('canvas');
+  canvas.id='layoutMainCanvas'; canvas.className='layoutMainCanvas';
+  preview.appendChild(canvas);
+  const processedAssets=await collectProcessedAssets();
+  const result=await window.VoidAnglerCanvasRenderer.renderSceneToCanvas(canvas,{
+    viewport:state.ui.viewport,camera:{x:0,y:0,w:100,h:100},elements:currentElements(),processedAssets,
+    cssWidth:rect.width,cssHeight:rect.height,background:false
+  });
+  return result;
+}
 async function renderCanvasGameViewPreview(){
   const canvas=$('#canvasGameViewPreview'); if(!canvas||!window.VoidAnglerCanvasRenderer)return;
   const cam=currentCamera(), base=viewportVirtualSize();
   const cameraAspect=(base.width*(cam.w/100))/(base.height*(cam.h/100));
   const wrap=canvas.parentElement; const maxW=Math.max(220,Math.min(620,wrap?.clientWidth||620));
   const cssW=maxW, cssH=Math.max(120,cssW/cameraAspect);
-  const processedAssets={};
-  for(const el of currentElements()){
-    if(processedAssets[el.assetId])continue;
-    const asset=state.assets[el.assetId]; if(!asset)continue;
-    const proc=await getProcessedAsset(asset).catch(()=>null); if(proc)processedAssets[el.assetId]=proc;
-  }
+  const processedAssets=await collectProcessedAssets();
   const result=await window.VoidAnglerCanvasRenderer.renderSceneToCanvas(canvas,{viewport:state.ui.viewport,camera:cam,elements:currentElements(),processedAssets,cssWidth:cssW,cssHeight:cssH});
   const status=$('#canvasRendererStatus'); if(status)status.textContent=`共通Renderer: ${Math.round(result.width)}×${Math.round(result.height)} / scale ${result.scale.toFixed(3)}`;
 }
@@ -393,14 +402,26 @@ async function renderGameViewPreview(){
   await renderCanvasGameViewPreview();
 }
 async function renderLayoutPreview(){
-  const preview=$('#layoutPreview'); preview.classList.toggle('gridOn',!!state.ui.showGrid);preview.classList.toggle('safeOn',!!state.ui.showSafe);$('#viewportFrame').className=`viewportFrame ${state.ui.viewport}`;preview.innerHTML='<div class="centerCross"></div>';
+  const preview=$('#layoutPreview');
+  preview.classList.toggle('gridOn',!!state.ui.showGrid); preview.classList.toggle('safeOn',!!state.ui.showSafe);
+  $('#viewportFrame').className=`viewportFrame ${state.ui.viewport}`;
+  preview.innerHTML='';
   const rect=preview.getBoundingClientRect();
-  for(const el of currentElements().slice().sort((a,b)=>a.z-b.z)){ const node=await buildLayoutElement(el,rect,true); if(node) preview.appendChild(node); }
+  await renderMainCanvasPreview(preview,rect);
+  const cross=document.createElement('div'); cross.className='centerCross'; preview.appendChild(cross);
+
+  // Transparent DOM handles only. The visible artwork is always the shared Canvas Renderer.
+  for(const el of currentElements().slice().sort((a,b)=>a.z-b.z)){
+    const node=await buildLayoutElement(el,rect,true,false); if(node) preview.appendChild(node);
+  }
   if(state.ui.showGameView){
-    const cam=currentCamera(), cs=cameraStyle(cam,rect), box=document.createElement('div');box.className='gameViewBox';box.style.left=`${cs.left}px`;box.style.top=`${cs.top}px`;box.style.width=`${cs.width}px`;box.style.height=`${cs.height}px`;box.innerHTML='<div class="gameViewHandle"></div>';box.addEventListener('pointerdown',onCameraPointerDown);preview.appendChild(box);
+    const cam=currentCamera(), cs=cameraStyle(cam,rect), box=document.createElement('div');
+    box.className='gameViewBox'; box.style.left=`${cs.left}px`; box.style.top=`${cs.top}px`; box.style.width=`${cs.width}px`; box.style.height=`${cs.height}px`;
+    box.innerHTML='<div class="gameViewHandle"></div>'; box.addEventListener('pointerdown',onCameraPointerDown); preview.appendChild(box);
   }
   await renderGameViewPreview();
 }
+
 function renderElementInspector(){
   const el = currentElement(); $('#noElementText').hidden = !!el; $('#elementInspector').hidden = !el; if(!el) return;
   $('#elementNameInput').value = el.name || ''; $('#elementAssetInput').value = el.assetId || ''; $('#elementPlacementInput').value=el.placementMode==='mount'?'mount':'anchor'; $('#elementXInput').value = round(el.x,1); $('#elementYInput').value = round(el.y,1); $('#elementWInput').value = round(el.w,1); $('#elementHInput').value = round(el.h,1); $('#elementRotInput').value = el.rotation || 0; $('#elementScaleInput').value = el.scale || 1; $('#elementZInput').value = el.z || 1; $('#elementOpacityInput').value = el.opacity ?? 1; $('#elementFlipXInput').checked = !!el.flipX; $('#elementFlipYInput').checked = !!el.flipY; $('#elementVisibleInput').checked = !!el.visible; $('#elementNotesInput').value = el.notes || '';
@@ -554,7 +575,7 @@ function onGlobalPointerUp(){ cropDrag=null; layoutDrag=null; cameraDrag=null; i
 function gameExportPayload(){
   const assets={};
   for(const [id,a] of Object.entries(state.assets)) assets[id]={id:a.id,name:a.name,category:a.category,src:a._processed?.value?.url||a.src,anchor:a._processed?.value?.anchor||a.anchor,mount:a._processed?.value?.mount||a.mount,tip:a._processed?.value?.muzzle||a.muzzle,width:a._processed?.value?.width||a.crop?.w||a.naturalW,height:a._processed?.value?.height||a.crop?.h||a.naturalH};
-  return {version:4,coordinateSystem:{unit:'percent',viewportBasis:'scene-canvas',scaleMode:'size-before-rotation',anchorMeaning:'transform-origin',mountMeaning:'attachment-point',tipMeaning:'emitter-point'},assets,layouts:state.layouts,cameras:state.cameras};
+  return {version:4.4,renderer:{id:'void-angler-canvas',version:window.VoidAnglerCanvasRenderer?.version||'canvas-v1.1',canonical:true},coordinateSystem:{unit:'percent',viewportBasis:'scene-canvas',scaleMode:'contain-box-before-rotation',anchorMeaning:'bitmap-transform-origin',mountMeaning:'bitmap-attachment-point',tipMeaning:'bitmap-emitter-point'},assets,layouts:state.layouts,cameras:state.cameras};
 }
 function bindEvents(){
   $$('.tab').forEach(btn=>btn.onclick=()=>{ state.ui.currentTab=btn.dataset.tab; renderAll(); });
@@ -604,7 +625,7 @@ function bindEvents(){
   ['#elementNameInput','#elementAssetInput','#elementPlacementInput','#elementXInput','#elementYInput','#elementWInput','#elementHInput','#elementRotInput','#elementScaleInput','#elementZInput','#elementOpacityInput','#elementNotesInput'].forEach(sel=>$(sel).addEventListener('input', updateElementFromInspector)); ['#elementFlipXInput','#elementFlipYInput','#elementVisibleInput'].forEach(sel=>$(sel).addEventListener('change', updateElementFromInspector));
 
   $('#copyJsonBtn').onclick = async ()=>{ await navigator.clipboard.writeText(JSON.stringify(state,null,2)); alert('JSONをコピーしました。'); };
-  $('#downloadJsonBtn').onclick = ()=> downloadText(JSON.stringify(state,null,2), 'void-angler-layout-v4-project.json'); $('#exportJsonBtn').onclick = ()=> downloadText(JSON.stringify(state,null,2), 'void-angler-layout-v4-project.json'); $('#exportGameBtn').onclick=()=>downloadText(JSON.stringify(gameExportPayload(),null,2),'void-angler-game-layout-v4.json');
+  $('#downloadJsonBtn').onclick = ()=> downloadText(JSON.stringify(state,null,2), 'void-angler-layout-v4_4-project.json'); $('#exportJsonBtn').onclick = ()=> downloadText(JSON.stringify(state,null,2), 'void-angler-layout-v4_4-project.json'); $('#exportGameBtn').onclick=()=>downloadText(JSON.stringify(gameExportPayload(),null,2),'void-angler-game-layout-v4_4.json');
   const canvasDownload=$('#downloadCanvasPreviewBtn'); if(canvasDownload) canvasDownload.onclick=()=>{ const c=$('#canvasGameViewPreview'); if(!c)return; const a=document.createElement('a'); a.href=c.toDataURL('image/png'); a.download=`void-angler-${state.ui.scene}-${currentSceneKey()}-canvas.png`; a.click(); };
   $('#importJsonInput').addEventListener('change', async e=>{ const file=e.target.files?.[0]; if(!file) return; try{ state = repairState(JSON.parse(await file.text())); await openSourceInEditor(state.ui.selectedSourceId || Object.keys(state.sources)[0]); renderAll(); } catch(err){ alert('JSON読込に失敗しました'); console.error(err);} e.target.value=''; });
   $('#applyDataDumpBtn').onclick = async ()=>{ try{ state = repairState(JSON.parse($('#dataDump').value)); await openSourceInEditor(state.ui.selectedSourceId || Object.keys(state.sources)[0]); renderAll(); }catch(err){ alert('JSONの形式が不正です'); } };

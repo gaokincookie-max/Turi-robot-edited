@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>VOID ANGLER Layout & Asset Editor v4 compatible</title>
+  <title>VOID ANGLER Layout & Asset Editor v4.2 Canvas</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 <header class="topbar">
-  <div class="brand"><strong>VOID ANGLER</strong><span> Layout & Asset Editor v4 compatible</span></div>
+  <div class="brand"><strong>VOID ANGLER</strong><span> Layout & Asset Editor v4.2 Canvas</span></div>
   <div class="topActions">
     <button id="saveLocalBtn">端末保存</button>
     <button id="loadLocalBtn">端末読込</button>
@@ -289,7 +289,11 @@
       </div>
       <div class="gamePreviewBlock top8">
         <div class="gamePreviewHeader"><strong>ゲーム実表示プレビュー</strong><span class="muted">Game Viewの中だけを拡大表示</span></div>
-        <div id="gameViewPreview" class="gameViewPreview"></div>
+        <div class="previewCompareGrid">
+          <div class="previewCompareItem"><small class="previewLabel">従来DOM Renderer</small><div id="gameViewPreview" class="gameViewPreview"></div></div>
+          <div class="previewCompareItem"><small class="previewLabel">共通Canvas Renderer</small><canvas id="canvasGameViewPreview" class="canvasGameViewPreview"></canvas></div>
+        </div>
+        <div class="canvasPreviewActions"><span id="canvasRendererStatus" class="muted tiny">Canvas Renderer待機中</span><button id="downloadCanvasPreviewBtn">Canvas PNG保存</button></div>
       </div>
     </section>
 
@@ -344,6 +348,7 @@
 </main>
 
 <script src="project-data.js"></script>
+<script src="canvas-renderer.js"></script>
 <script src="editor.js"></script>
 </body>
 </html>

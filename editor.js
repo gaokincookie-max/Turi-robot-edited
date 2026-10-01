@@ -352,6 +352,21 @@ function viewportVirtualSize(viewport=state.ui.viewport){
   if(viewport==='wide') return {width:2100,height:900};
   return {width:900,height:1600}; // phone
 }
+async function renderCanvasGameViewPreview(){
+  const canvas=$('#canvasGameViewPreview'); if(!canvas||!window.VoidAnglerCanvasRenderer)return;
+  const cam=currentCamera(), base=viewportVirtualSize();
+  const cameraAspect=(base.width*(cam.w/100))/(base.height*(cam.h/100));
+  const wrap=canvas.parentElement; const maxW=Math.max(220,Math.min(620,wrap?.clientWidth||620));
+  const cssW=maxW, cssH=Math.max(120,cssW/cameraAspect);
+  const processedAssets={};
+  for(const el of currentElements()){
+    if(processedAssets[el.assetId])continue;
+    const asset=state.assets[el.assetId]; if(!asset)continue;
+    const proc=await getProcessedAsset(asset).catch(()=>null); if(proc)processedAssets[el.assetId]=proc;
+  }
+  const result=await window.VoidAnglerCanvasRenderer.renderSceneToCanvas(canvas,{viewport:state.ui.viewport,camera:cam,elements:currentElements(),processedAssets,cssWidth:cssW,cssHeight:cssH});
+  const status=$('#canvasRendererStatus'); if(status)status.textContent=`共通Renderer: ${Math.round(result.width)}×${Math.round(result.height)} / scale ${result.scale.toFixed(3)}`;
+}
 async function renderGameViewPreview(){
   const host=$('#gameViewPreview'); if(!host) return; host.innerHTML='';
   const cam=currentCamera(), base=viewportVirtualSize();
@@ -375,6 +390,7 @@ async function renderGameViewPreview(){
     const node=await buildLayoutElement(el,fakeRect,false); if(node) world.appendChild(node);
   }
   host.appendChild(world);
+  await renderCanvasGameViewPreview();
 }
 async function renderLayoutPreview(){
   const preview=$('#layoutPreview'); preview.classList.toggle('gridOn',!!state.ui.showGrid);preview.classList.toggle('safeOn',!!state.ui.showSafe);$('#viewportFrame').className=`viewportFrame ${state.ui.viewport}`;preview.innerHTML='<div class="centerCross"></div>';
@@ -589,6 +605,7 @@ function bindEvents(){
 
   $('#copyJsonBtn').onclick = async ()=>{ await navigator.clipboard.writeText(JSON.stringify(state,null,2)); alert('JSONをコピーしました。'); };
   $('#downloadJsonBtn').onclick = ()=> downloadText(JSON.stringify(state,null,2), 'void-angler-layout-v4-project.json'); $('#exportJsonBtn').onclick = ()=> downloadText(JSON.stringify(state,null,2), 'void-angler-layout-v4-project.json'); $('#exportGameBtn').onclick=()=>downloadText(JSON.stringify(gameExportPayload(),null,2),'void-angler-game-layout-v4.json');
+  const canvasDownload=$('#downloadCanvasPreviewBtn'); if(canvasDownload) canvasDownload.onclick=()=>{ const c=$('#canvasGameViewPreview'); if(!c)return; const a=document.createElement('a'); a.href=c.toDataURL('image/png'); a.download=`void-angler-${state.ui.scene}-${currentSceneKey()}-canvas.png`; a.click(); };
   $('#importJsonInput').addEventListener('change', async e=>{ const file=e.target.files?.[0]; if(!file) return; try{ state = repairState(JSON.parse(await file.text())); await openSourceInEditor(state.ui.selectedSourceId || Object.keys(state.sources)[0]); renderAll(); } catch(err){ alert('JSON読込に失敗しました'); console.error(err);} e.target.value=''; });
   $('#applyDataDumpBtn').onclick = async ()=>{ try{ state = repairState(JSON.parse($('#dataDump').value)); await openSourceInEditor(state.ui.selectedSourceId || Object.keys(state.sources)[0]); renderAll(); }catch(err){ alert('JSONの形式が不正です'); } };
   $('#refreshDataDumpBtn').onclick = refreshJsonViews;
@@ -610,3 +627,4 @@ async function renderAll(){
   $('#brushSizeInput').value = imageEditor.brushSize; $('#sourceZoomInput').value = imageEditor.zoom;
   renderAll();
 })();
+

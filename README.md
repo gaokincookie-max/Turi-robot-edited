@@ -20,10 +20,14 @@ v3dの操作感を保った互換改良版です。`index.html` を開いて使�
 エディタで確認したGame Viewとゲーム側が同じデータを使うことを前提にしています。次のゲーム統合作業では、このv4出力を共通Rendererで直接読む形にするのが安全です。
 
 
-## v4.2 Canvas Renderer
+## v4.3 Canvas Renderer
 - v4.1のUI/操作感は維持。
 - ゲーム実表示プレビューに「従来DOM Renderer」と「共通Canvas Renderer」を並べて表示。
 - `canvas-renderer.js` はゲーム側でもそのまま再利用するための独立Renderer。
 - Canvas版は Scene Canvas / Game View / A-M-T / placementMode / rotation / scale / flip を単一コードパスで処理。
 - 「Canvas PNG保存」で現在のCanvas版プレビューを書き出せます。
 - この段階ではゲーム本体はまだ変更しません。DOM版とCanvas版が一致することを先に確認してください。
+
+
+## v4.3
+Canvas Renderer の画像描画を DOM 版の `object-fit: contain` と同一化しました。各アセットは element box を引き伸ばさず、元画像の縦横比を維持して中央配置します。

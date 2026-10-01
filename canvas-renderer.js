@@ -96,7 +96,19 @@
       ctx.translate(anchorX,anchorY);
       ctx.rotate(g.rot);
       ctx.scale(g.fx,g.fy);
-      ctx.drawImage(img,-g.ax*g.wPx,-g.ay*g.hPx,g.wPx,g.hPx);
+
+      // Match the DOM renderer exactly: the <img> fills the element box,
+      // but object-fit: contain preserves the processed image aspect ratio.
+      // Do NOT stretch the bitmap to g.wPx × g.hPx.
+      const naturalW=Math.max(1,Number(img.naturalWidth||img.width||proc.width||1));
+      const naturalH=Math.max(1,Number(img.naturalHeight||img.height||proc.height||1));
+      const containScale=Math.min(g.wPx/naturalW,g.hPx/naturalH);
+      const drawW=naturalW*containScale, drawH=naturalH*containScale;
+      const boxLeft=-g.ax*g.wPx, boxTop=-g.ay*g.hPx;
+      const drawX=boxLeft+(g.wPx-drawW)/2;
+      const drawY=boxTop +(g.hPx-drawH)/2;
+      ctx.imageSmoothingEnabled=false;
+      ctx.drawImage(img,drawX,drawY,drawW,drawH);
       ctx.restore();
 
       function transformedPoint(nx,ny){

@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'void-angler-layout-editor-v4-compatible';
+const STORAGE_KEY = 'void-angler-layout-editor-v4_5-battle-editor';
 
 const PRESET_ASSETS = [
   ['ship_mk1','Ship Mk1','ship','bundled_assets/assets/ships/ship_mk1.png'],
@@ -40,6 +40,28 @@ const PRESET_ASSETS = [
   ['hook_recovery','Hook Recovery','hook','bundled_assets/assets/fishing/hook/recovery.png'],
   ['hook_military','Hook Military','hook','bundled_assets/assets/fishing/hook/military.png'],
   ['hook_probe','Hook Probe','hook','bundled_assets/assets/fishing/hook/probe.png'],
+  ['enemy_ship_mk1','Enemy Ship Mk1','enemy-ship','bundled_assets/assets/enemy/ships/ship_mk1.png'],
+  ['enemy_ship_mk2','Enemy Ship Mk2','enemy-ship','bundled_assets/assets/enemy/ships/ship_mk2.png'],
+  ['enemy_ship_mk3','Enemy Ship Mk3','enemy-ship','bundled_assets/assets/enemy/ships/ship_mk3.png'],
+  ['enemy_ship_mk4','Enemy Ship Mk4','enemy-ship','bundled_assets/assets/enemy/ships/ship_mk4.png'],
+  ['enemy_w_pulse','Enemy Pulse Cannon','enemy-weapon','bundled_assets/assets/enemy/weapons/w_pulse.png'],
+  ['enemy_w_rotary','Enemy Rotary Gun','enemy-weapon','bundled_assets/assets/enemy/weapons/w_rotary.png'],
+  ['enemy_w_scatter','Enemy Scatter Gun','enemy-weapon','bundled_assets/assets/enemy/weapons/w_scatter.png'],
+  ['enemy_w_missile','Enemy Missile Pod','enemy-weapon','bundled_assets/assets/enemy/weapons/w_missile.png'],
+  ['enemy_w_laser','Enemy Laser Gun','enemy-weapon','bundled_assets/assets/enemy/weapons/w_laser.png'],
+  ['enemy_w_barrier','Enemy Barrier Projector','enemy-weapon','bundled_assets/assets/enemy/weapons/w_barrier.png'],
+  ['enemy_w_piercer','Enemy Piercer','enemy-weapon','bundled_assets/assets/enemy/weapons/w_piercer.png'],
+  ['enemy_w_emp','Enemy EMP Launcher','enemy-weapon','bundled_assets/assets/enemy/weapons/w_emp.png'],
+  ['enemy_w_twin','Enemy Twin Cannon','enemy-weapon','bundled_assets/assets/enemy/weapons/w_twin.png'],
+  ['enemy_w_coil','Enemy Coil Gun','enemy-weapon','bundled_assets/assets/enemy/weapons/w_coil.png'],
+  ['enemy_e_armor','Enemy Armor Plate','enemy-equipment','bundled_assets/assets/enemy/equipment/e_armor.png'],
+  ['enemy_e_shield','Enemy Shield Unit','enemy-equipment','bundled_assets/assets/enemy/equipment/e_shield.png'],
+  ['enemy_e_repair','Enemy Repair Unit','enemy-equipment','bundled_assets/assets/enemy/equipment/e_repair.png'],
+  ['enemy_e_aim','Enemy Aim Assist','enemy-equipment','bundled_assets/assets/enemy/equipment/e_aim.png'],
+  ['enemy_e_cooler','Enemy Cooler','enemy-equipment','bundled_assets/assets/enemy/equipment/e_cooler.png'],
+  ['enemy_e_cargo','Enemy Cargo','enemy-equipment','bundled_assets/assets/enemy/equipment/e_cargo.png'],
+  ['enemy_e_sensor','Enemy Sensor','enemy-equipment','bundled_assets/assets/enemy/equipment/e_sensor.png'],
+  ['enemy_e_salvage','Enemy Salvage','enemy-equipment','bundled_assets/assets/enemy/equipment/e_salvage.png'],
 ];
 
 const PRESET_SOURCES = [
@@ -122,7 +144,8 @@ function currentCamera(){
 function repairState(saved){
   const base = makePresetState();
   if(!saved || typeof saved !== 'object') return base;
-  saved.assets = saved.assets && Object.keys(saved.assets).length ? saved.assets : base.assets;
+  saved.assets = saved.assets && Object.keys(saved.assets).length ? saved.assets : clone(base.assets);
+  for(const [id,a] of Object.entries(base.assets)){ if(!saved.assets[id]) saved.assets[id]=clone(a); }
   saved.sources = saved.sources || {};
   for(const [id,src] of Object.entries(base.sources)){
     if(!saved.sources[id] || !saved.sources[id].src) saved.sources[id] = clone(src);
@@ -137,7 +160,7 @@ function repairState(saved){
   }
   if(!saved.sources[saved.ui.selectedSourceId]) saved.ui.selectedSourceId = Object.keys(saved.sources)[0] || null;
   if(!saved.assets[saved.ui.selectedAssetId]) saved.ui.selectedAssetId = Object.keys(saved.assets)[0] || null;
-  saved.version = 4.4;
+  saved.version = 4.5;
   saved.migratedFrom = saved.migratedFrom || 'v3-compatible';
   return saved;
 }
@@ -575,7 +598,7 @@ function onGlobalPointerUp(){ cropDrag=null; layoutDrag=null; cameraDrag=null; i
 function gameExportPayload(){
   const assets={};
   for(const [id,a] of Object.entries(state.assets)) assets[id]={id:a.id,name:a.name,category:a.category,src:a._processed?.value?.url||a.src,anchor:a._processed?.value?.anchor||a.anchor,mount:a._processed?.value?.mount||a.mount,tip:a._processed?.value?.muzzle||a.muzzle,width:a._processed?.value?.width||a.crop?.w||a.naturalW,height:a._processed?.value?.height||a.crop?.h||a.naturalH};
-  return {version:4.4,renderer:{id:'void-angler-canvas',version:window.VoidAnglerCanvasRenderer?.version||'canvas-v1.1',canonical:true},coordinateSystem:{unit:'percent',viewportBasis:'scene-canvas',scaleMode:'contain-box-before-rotation',anchorMeaning:'bitmap-transform-origin',mountMeaning:'bitmap-attachment-point',tipMeaning:'bitmap-emitter-point'},assets,layouts:state.layouts,cameras:state.cameras};
+  return {version:4.5,renderer:{id:'void-angler-canvas',version:window.VoidAnglerCanvasRenderer?.version||'canvas-v1.1',canonical:true},coordinateSystem:{unit:'percent',viewportBasis:'scene-canvas',scaleMode:'contain-box-before-rotation',anchorMeaning:'bitmap-transform-origin',mountMeaning:'bitmap-attachment-point',tipMeaning:'bitmap-emitter-point'},assets,layouts:state.layouts,cameras:state.cameras};
 }
 function bindEvents(){
   $$('.tab').forEach(btn=>btn.onclick=()=>{ state.ui.currentTab=btn.dataset.tab; renderAll(); });
@@ -621,11 +644,14 @@ function bindEvents(){
   $('#deleteElementBtn').onclick = ()=>{ const arr=currentElements(); const idx=arr.findIndex(e=>e.id===state.ui.selectedElementId); if(idx<0) return; arr.splice(idx,1); state.ui.selectedElementId=arr[0]?.id || null; renderAll(); };
   $('#resetElementBtn').onclick = ()=>{ const cur=currentElement(); if(!cur) return; const d=defaultSceneElements(state.ui.scene, Number(state.ui.mk||1)).find(e=>e.key===cur.key); if(d){ Object.assign(cur, clone(d), {id:cur.id}); renderAll(); } };
   $('#resetSceneBtn').onclick = ()=>{ state.layouts[state.ui.scene][currentSceneKey()].elements = defaultSceneElements(state.ui.scene, Number(state.ui.mk||1)); state.ui.selectedElementId = currentElements()[0]?.id || null; renderAll(); };
-  $('#mirrorSceneBtn').onclick = ()=>{ if(state.ui.scene!=='battle_player'){ alert('まず「戦闘: 味方艦」で調整してください。'); return; } const src=clone(state.layouts.battle_player[state.ui.mk].elements); state.layouts.battle_enemy[state.ui.mk].elements = src.map(el=>({ ...el, id:uid('mirror'), y:round(100-el.y,1), rotation:(Number(el.rotation)||0)+180 })); alert('戦闘: 敵艦 に上下反転コピーしました。'); renderAll(); };
+  $('#mirrorSceneBtn').onclick = ()=>{ if(state.ui.scene!=='battle_player'){ alert('まず「戦闘: 味方艦」で調整してください。'); return; } copyPlayerToEnemy(state.ui.mk); alert('敵専用色違い素材を使って、完成艦を180°反転コピーしました。'); renderAll(); };
+  const syncP=$('#syncMaintToBattleBtn'); if(syncP)syncP.onclick=()=>{copyMaintToBattlePlayer(state.ui.mk);state.ui.scene='battle_player';renderAll();};
+  const syncE=$('#syncPlayerToEnemyBtn'); if(syncE)syncE.onclick=()=>{copyPlayerToEnemy(state.ui.mk);state.ui.scene='battle_enemy';renderAll();};
+  const syncAll=$('#syncAllBattleBtn'); if(syncAll)syncAll.onclick=()=>{syncAllBattlePairs();alert('Mk.1〜4を現在の整備艦→戦闘自艦→敵色艦へ同期しました。');renderAll();};
   ['#elementNameInput','#elementAssetInput','#elementPlacementInput','#elementXInput','#elementYInput','#elementWInput','#elementHInput','#elementRotInput','#elementScaleInput','#elementZInput','#elementOpacityInput','#elementNotesInput'].forEach(sel=>$(sel).addEventListener('input', updateElementFromInspector)); ['#elementFlipXInput','#elementFlipYInput','#elementVisibleInput'].forEach(sel=>$(sel).addEventListener('change', updateElementFromInspector));
 
   $('#copyJsonBtn').onclick = async ()=>{ await navigator.clipboard.writeText(JSON.stringify(state,null,2)); alert('JSONをコピーしました。'); };
-  $('#downloadJsonBtn').onclick = ()=> downloadText(JSON.stringify(state,null,2), 'void-angler-layout-v4_4-project.json'); $('#exportJsonBtn').onclick = ()=> downloadText(JSON.stringify(state,null,2), 'void-angler-layout-v4_4-project.json'); $('#exportGameBtn').onclick=()=>downloadText(JSON.stringify(gameExportPayload(),null,2),'void-angler-game-layout-v4_4.json');
+  $('#downloadJsonBtn').onclick = ()=> downloadText(JSON.stringify(state,null,2), 'void-angler-layout-v4_5-project.json'); $('#exportJsonBtn').onclick = ()=> downloadText(JSON.stringify(state,null,2), 'void-angler-layout-v4_5-project.json'); $('#exportGameBtn').onclick=()=>downloadText(JSON.stringify(gameExportPayload(),null,2),'void-angler-game-layout-v4_5.json');
   const canvasDownload=$('#downloadCanvasPreviewBtn'); if(canvasDownload) canvasDownload.onclick=()=>{ const c=$('#canvasGameViewPreview'); if(!c)return; const a=document.createElement('a'); a.href=c.toDataURL('image/png'); a.download=`void-angler-${state.ui.scene}-${currentSceneKey()}-canvas.png`; a.click(); };
   $('#importJsonInput').addEventListener('change', async e=>{ const file=e.target.files?.[0]; if(!file) return; try{ state = repairState(JSON.parse(await file.text())); await openSourceInEditor(state.ui.selectedSourceId || Object.keys(state.sources)[0]); renderAll(); } catch(err){ alert('JSON読込に失敗しました'); console.error(err);} e.target.value=''; });
   $('#applyDataDumpBtn').onclick = async ()=>{ try{ state = repairState(JSON.parse($('#dataDump').value)); await openSourceInEditor(state.ui.selectedSourceId || Object.keys(state.sources)[0]); renderAll(); }catch(err){ alert('JSONの形式が不正です'); } };
@@ -640,6 +666,22 @@ function populateElementAssetOptions(){ $('#elementAssetInput').innerHTML = Obje
 async function renderAll(){
   renderTabs(); populateElementAssetOptions(); await renderAssetList(); await renderAssetSummary(); await renderSourceList(); await renderAdjustTab(); await renderLayoutEditor(); renderImageEditor(); refreshJsonViews(); saveState();
 }
+
+const ENEMY_ASSET_PREFIX='enemy_';
+function enemyAssetIdFor(assetId){ const id=ENEMY_ASSET_PREFIX+assetId; return state.assets[id]?id:assetId; }
+function copyMaintToBattlePlayer(mk=state.ui.mk){
+  const k=String(mk), src=clone(state.layouts.maint_ship[k]?.elements||[]);
+  state.layouts.battle_player[k].elements=src.map(el=>({...el,id:uid('battleP'),notes:`${el.notes||''} [v4.5 synced from maint_ship]`.trim()}));
+  state.cameras.battle_player[k]=clone(state.cameras.maint_ship[k]);
+}
+function copyPlayerToEnemy(mk=state.ui.mk){
+  const k=String(mk), src=clone(state.layouts.battle_player[k]?.elements||[]);
+  state.layouts.battle_enemy[k].elements=src.map(el=>({...el,id:uid('battleE'),assetId:enemyAssetIdFor(el.assetId),x:round(100-Number(el.x||50),1),y:round(100-Number(el.y||50),1),rotation:(Number(el.rotation)||0)+180,notes:`${el.notes||''} [v4.5 enemy recolor + 180°]`.trim()}));
+  const c=state.cameras.battle_player[k]||{x:0,y:0,w:100,h:100};
+  state.cameras.battle_enemy[k]={x:round(100-(Number(c.x)+Number(c.w)),1),y:round(100-(Number(c.y)+Number(c.h)),1),w:Number(c.w),h:Number(c.h)};
+}
+function syncBattlePair(mk=state.ui.mk){ copyMaintToBattlePlayer(mk); copyPlayerToEnemy(mk); }
+function syncAllBattlePairs(){ ['1','2','3','4'].forEach(syncBattlePair); }
 
 (async function init(){
   bindEvents();

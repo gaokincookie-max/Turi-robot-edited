@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'void-angler-layout-editor-v4_5-battle-editor';
+const STORAGE_KEY = 'void-angler-layout-editor-v4_5_2-enemy-parts';
 
 const PRESET_ASSETS = [
   ['ship_mk1','Ship Mk1','ship','bundled_assets/assets/ships/ship_mk1.png'],
@@ -160,7 +160,7 @@ function repairState(saved){
   }
   if(!saved.sources[saved.ui.selectedSourceId]) saved.ui.selectedSourceId = Object.keys(saved.sources)[0] || null;
   if(!saved.assets[saved.ui.selectedAssetId]) saved.ui.selectedAssetId = Object.keys(saved.assets)[0] || null;
-  saved.version = 4.5;
+  saved.version = 4.52;
   saved.migratedFrom = saved.migratedFrom || 'v3-compatible';
   return saved;
 }
@@ -598,7 +598,7 @@ function onGlobalPointerUp(){ cropDrag=null; layoutDrag=null; cameraDrag=null; i
 function gameExportPayload(){
   const assets={};
   for(const [id,a] of Object.entries(state.assets)) assets[id]={id:a.id,name:a.name,category:a.category,src:a._processed?.value?.url||a.src,anchor:a._processed?.value?.anchor||a.anchor,mount:a._processed?.value?.mount||a.mount,tip:a._processed?.value?.muzzle||a.muzzle,width:a._processed?.value?.width||a.crop?.w||a.naturalW,height:a._processed?.value?.height||a.crop?.h||a.naturalH};
-  return {version:4.5,renderer:{id:'void-angler-canvas',version:window.VoidAnglerCanvasRenderer?.version||'canvas-v1.1',canonical:true},coordinateSystem:{unit:'percent',viewportBasis:'scene-canvas',scaleMode:'contain-box-before-rotation',anchorMeaning:'bitmap-transform-origin',mountMeaning:'bitmap-attachment-point',tipMeaning:'bitmap-emitter-point'},assets,layouts:state.layouts,cameras:state.cameras};
+  return {version:4.52,renderer:{id:'void-angler-canvas',version:window.VoidAnglerCanvasRenderer?.version||'canvas-v1.1',canonical:true},coordinateSystem:{unit:'percent',viewportBasis:'scene-canvas',scaleMode:'contain-box-before-rotation',anchorMeaning:'bitmap-transform-origin',mountMeaning:'bitmap-attachment-point',tipMeaning:'bitmap-emitter-point'},assets,layouts:state.layouts,cameras:state.cameras};
 }
 function bindEvents(){
   $$('.tab').forEach(btn=>btn.onclick=()=>{ state.ui.currentTab=btn.dataset.tab; renderAll(); });

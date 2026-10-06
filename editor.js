@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'void-angler-layout-editor-v4_5_2-enemy-parts';
+const STORAGE_KEY = 'void-angler-layout-editor-v4_5_3-imageedit-restored';
 
 const PRESET_ASSETS = [
   ['ship_mk1','Ship Mk1','ship','bundled_assets/assets/ships/ship_mk1.png'],
@@ -691,3 +691,15 @@ function syncAllBattlePairs(){ ['1','2','3','4'].forEach(syncBattlePair); }
   renderAll();
 })();
 
+
+
+// v4.5.3 compatibility: keep classic image-edit experience and fresh storage key.
+(async function(){
+  try{
+    if(state && state.ui){
+      const pref = state.sources?.src_ship_sheet ? 'src_ship_sheet' : (Object.keys(state.sources||{})[0]||null);
+      if(!state.ui.selectedSourceId || !state.sources?.[state.ui.selectedSourceId]) state.ui.selectedSourceId = pref;
+      if(!state.ui.selectedAssetId || !state.assets?.[state.ui.selectedAssetId]) state.ui.selectedAssetId = Object.keys(state.assets||{})[0]||null;
+    }
+  }catch(e){}
+})();
